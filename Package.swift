@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "spfk-au-host",
     defaultLocalization: "en",
-    platforms: [.macOS(.v12), .iOS(.v15),],
+    platforms: [.macOS(.v12),],
     products: [
         .library(
             name: "SPFKAUHost",
@@ -15,19 +15,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ryanfrancesconi/spfk-base", branch: "development"),
-        .package(url: "https://github.com/ryanfrancesconi/spfk-audio-base", branch: "development"),
         .package(url: "https://github.com/ryanfrancesconi/spfk-utils", branch: "development"),
-
         .package(url: "https://github.com/ryanfrancesconi/spfk-testing", branch: "development"),
     ],
     targets: [
         .target(
             name: "SPFKAUHost",
             dependencies: [
-                .product(name: "SPFKBase", package: "spfk-base"),
-                .product(name: "SPFKAudioBase", package: "spfk-audio-base"),
                 .product(name: "SPFKUtils", package: "spfk-utils"),
-
                 .targetItem(name: "SPFKAUHostC", condition: nil),
             ]
         ),

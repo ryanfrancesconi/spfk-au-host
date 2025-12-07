@@ -1,3 +1,3 @@
-# SPFK
+# spfk-au-host
 
-A package with a C based target.
+Swift based Audio Unit (v3) host and related utilities

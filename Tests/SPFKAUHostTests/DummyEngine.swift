@@ -2,9 +2,9 @@ import AVFoundation
 import SPFKAUHost
 import SPFKBase
 
-// This doesn't actually do any audio - it's just filling in the delegate requirements
+/// This doesn't actually do any audio - it's just filling in the delegate requirements
 struct DummyEngine {
-    let auDelayDesc = AudioComponentDescription(
+    static let auDelayDesc = AudioComponentDescription(
         componentType: 1_635_083_896,
         componentSubType: 1_684_368_505,
         componentManufacturer: 1_634_758_764,
@@ -12,7 +12,7 @@ struct DummyEngine {
         componentFlagsMask: 0
     )
 
-    let auMatrixReverbDesc = AudioComponentDescription(
+    static let auMatrixReverbDesc = AudioComponentDescription(
         componentType: 1_635_083_896,
         componentSubType: 1_836_213_622,
         componentManufacturer: 1_634_758_764,
@@ -20,11 +20,26 @@ struct DummyEngine {
         componentFlagsMask: 0
     )
 
-    var components: [AVAudioUnitComponent] {
+    static let auFilterDesc = AudioComponentDescription(
+        componentType: 1_635_083_896,
+        componentSubType: 1_718_185_076,
+        componentManufacturer: 1_634_758_764,
+        componentFlags: 2,
+        componentFlagsMask: 0
+    )
+
+    static var components: [AVAudioUnitComponent] {
         [
             AVAudioUnitComponent.component(matching: auDelayDesc),
             AVAudioUnitComponent.component(matching: auMatrixReverbDesc),
+            AVAudioUnitComponent.component(matching: auFilterDesc),
         ].compactMap(\.self)
+    }
+
+    let _audioUnitManufactererCollection: [AudioUnitManufacturerCollection]
+
+    init() {
+        _audioUnitManufactererCollection = AudioUnitManufacturerCollection.createGroup(from: Self.components)
     }
 }
 
@@ -39,8 +54,14 @@ extension DummyEngine: AudioUnitChainDelegate {
             "\(node1.resolvedName) to \(node2.resolvedName) with \(format?.readableDescription ?? "default engine format")"
         )
     }
+}
 
+extension DummyEngine: AudioUnitAvailability {
     var availableAudioUnitComponents: [AVAudioUnitComponent]? {
-        components
+        Self.components
+    }
+
+    var audioUnitManufactererCollection: [AudioUnitManufacturerCollection] {
+        _audioUnitManufactererCollection
     }
 }

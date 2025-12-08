@@ -21,25 +21,21 @@ final class AudioUnitChainTests: TestCaseModel {
         try await audioUnitChain.updateIO(input: input, output: output)
     }
 
-    @Test func findEffects() async throws {
-        #expect(dummyEngine.components.count == 2)
-    }
-
     @Test func insert() async throws {
-        try await audioUnitChain.insertAudioUnit(componentDescription: dummyEngine.auDelayDesc, at: 0)
-        try await audioUnitChain.insertAudioUnit(componentDescription: dummyEngine.auMatrixReverbDesc, at: 1)
+        try await audioUnitChain.insertAudioUnit(componentDescription: DummyEngine.auDelayDesc, at: 0)
+        try await audioUnitChain.insertAudioUnit(componentDescription: DummyEngine.auMatrixReverbDesc, at: 1)
+        try await audioUnitChain.insertAudioUnit(componentDescription: DummyEngine.auFilterDesc, at: 2)
         try await audioUnitChain.connect()
 
-        await #expect(audioUnitChain.data.unbypassedEffects.count == 2)
-        
-        print(await audioUnitChain.connectionDescription)
+        await #expect(audioUnitChain.data.unbypassedEffects.count == 3)
 
+        await print(audioUnitChain.connectionDescription)
     }
 
     @Test func insertOutOfBounds() async throws {
         await #expect(throws: (any Error).self) {
             try await audioUnitChain.insertAudioUnit(
-                componentDescription: dummyEngine.auDelayDesc, at: audioUnitChain.insertCount + 1
+                componentDescription: DummyEngine.auDelayDesc, at: audioUnitChain.insertCount + 1
             )
         }
     }

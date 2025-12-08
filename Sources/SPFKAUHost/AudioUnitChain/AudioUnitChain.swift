@@ -9,7 +9,7 @@ public actor AudioUnitChain {
     public static let defaultInsertCount = 6
 
     /// Delegate that will be sent notifications
-    public let delegate: AudioUnitChainDelegate
+    public var delegate: AudioUnitChainDelegate?
 
     /// first node in chain, generally a player or instrument
     public var input: AVAudioNode?
@@ -18,7 +18,7 @@ public actor AudioUnitChain {
     public var output: AVAudioNode?
 
     public var availableAudioUnitComponents: [AVAudioUnitComponent] {
-        delegate.availableAudioUnitComponents ?? []
+        delegate?.availableAudioUnitComponents ?? []
     }
 
     public var data: AudioUnitChainData
@@ -73,7 +73,7 @@ public actor AudioUnitChain {
     /// Should be called when done with this class to release references
     public func dispose() async throws {
         try await data.removeAll()
-
+        delegate = nil
         input = nil
         output = nil
     }

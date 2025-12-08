@@ -60,7 +60,7 @@ extension AudioUnitChain {
     ) async throws {
         try await data.check(index: index)
 
-        delegate.audioUnitChain(self, event: .willInsert(index: index))
+        delegate?.audioUnitChain(self, event: .willInsert(index: index))
 
         let ctype = componentDescription.componentType
 
@@ -91,7 +91,7 @@ extension AudioUnitChain {
 
         try await insert(audioUnit: audioUnit, at: index)
 
-        delegate.audioUnitChain(self, event: .didInsert(index: index))
+        delegate?.audioUnitChain(self, event: .didInsert(index: index))
     }
 
     private func insert(audioUnit: AVAudioUnit, at index: Int) async throws {

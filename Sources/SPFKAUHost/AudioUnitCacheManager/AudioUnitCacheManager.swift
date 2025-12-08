@@ -50,7 +50,14 @@ public actor AudioUnitCacheManager {
     var cachedComponentCount: Int?
 
     /// All results including effects that are incompatible
-    public var componentCollection: ComponentCollection?
+    public private(set) var componentCollection: ComponentCollection?
+    func update(componentCollection: ComponentCollection?) {
+        self.componentCollection = componentCollection
+    }
+
+    func updateEnabled(from value: ComponentCollection) {
+        componentCollection?.updateEnabled(from: value)
+    }
 
     public func update(componentCollectionResult result: ComponentValidationResult) {
         componentCollection?.update(result: result)
@@ -115,6 +122,7 @@ public actor AudioUnitCacheManager {
     public func load() async throws {
         // already loaded
         guard componentCollection == nil else {
+            assertionFailure("already loaded")
             return
         }
 
@@ -149,7 +157,12 @@ public actor AudioUnitCacheManager {
     }
 
     func send(event: AudioUnitCacheEvent) async {
-        await delegate?.handleAudioUnitCacheManager(event: event)
+        guard let delegate else {
+            assertionFailure("delegate is nil")
+            return
+        }
+
+        await delegate.handleAudioUnitCacheManager(event: event)
     }
 }
 

@@ -122,7 +122,7 @@ public struct ComponentCollection: Sendable {
         }
     }
 
-    public mutating func update(from collection: ComponentCollection) {
+    public mutating func updateEnabled(from collection: ComponentCollection) {
         for item in collection.validationResults {
             update(audioComponentDescription: item.audioComponentDescription, isEnabled: item.isEnabled)
         }

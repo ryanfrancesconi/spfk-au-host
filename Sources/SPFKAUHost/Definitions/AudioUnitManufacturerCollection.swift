@@ -12,16 +12,17 @@ public struct AudioUnitManufacturerCollection: Equatable, Hashable, Sendable {
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(manufacturer)
+        hasher.combine(name)
     }
 
     public let name: String
     public let manufacturer: OSType
-    public let components: [SendableAudioUnitComponent]
+    public let components: [S_AVAudioUnitComponent]
 
     public init(
         name: String,
         manufacturer: OSType,
-        components: [SendableAudioUnitComponent] = []
+        components: [S_AVAudioUnitComponent] = []
     ) {
         self.name = name.trimmed
         self.manufacturer = manufacturer
@@ -36,41 +37,39 @@ extension AudioUnitManufacturerCollection {
                 AudioUnitManufacturerCollection(
                     name: $0.manufacturerName,
                     manufacturer: $0.audioComponentDescription.componentManufacturer,
-                    components: []
                 )
-            }
-        )
+            })
 
         // now fill in the audioUnits
 
-        var componentManufacturers = [AudioUnitManufacturerCollection]()
+        var value = [AudioUnitManufacturerCollection]()
 
         for item in manufacturerSet {
-            let filtered = filter(components: components, for: item.manufacturer)
+            let mComponents = select(components: components, for: item.manufacturer)
 
-            componentManufacturers.append(
+            value.append(
                 AudioUnitManufacturerCollection(
                     name: item.name,
                     manufacturer: item.manufacturer,
-                    components: filtered
+                    components: mComponents
                 )
             )
         }
 
-        componentManufacturers = componentManufacturers.sorted {
+        value = value.sorted {
             $0.name.standardCompare(with: $1.name)
         }
 
-        return componentManufacturers
+        return value
     }
 
-    private static func filter(components: [AVAudioUnitComponent], for manufacturer: OSType) -> [SendableAudioUnitComponent] {
+    private static func select(components: [AVAudioUnitComponent], for manufacturer: OSType) -> [S_AVAudioUnitComponent] {
         let components = components.filter {
             $0.audioComponentDescription.componentManufacturer == manufacturer
         }
 
         let sendables = components.map {
-            SendableAudioUnitComponent(avAudioUnitCompoment: $0)
+            S_AVAudioUnitComponent(avAudioUnitCompoment: $0)
         }
 
         return sendables.sorted {

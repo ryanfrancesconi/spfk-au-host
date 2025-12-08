@@ -142,11 +142,11 @@ extension AudioUnitCacheManager {
 
         let results = try await validate()
 
-        componentCollection = ComponentCollection(results: results)
+        update(componentCollection: ComponentCollection(results: results))
 
         // reapply isEnabled or if missing true
         if let value = previousCollection {
-            componentCollection?.update(from: value)
+            updateEnabled(from: value)
         }
 
         try await writeCache()

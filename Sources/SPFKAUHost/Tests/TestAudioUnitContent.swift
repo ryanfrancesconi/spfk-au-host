@@ -1,10 +1,10 @@
 import AVFoundation
-import SPFKAUHost
+import SPFKAudioBase
 import SPFKBase
 
 /// This doesn't actually do any audio - it's just filling in the delegate requirements
-struct DummyEngine {
-    static let auDelayDesc = AudioComponentDescription(
+public struct TestAudioUnitContent {
+    public static let auDelayDesc = AudioComponentDescription(
         componentType: 1_635_083_896,
         componentSubType: 1_684_368_505,
         componentManufacturer: 1_634_758_764,
@@ -12,7 +12,7 @@ struct DummyEngine {
         componentFlagsMask: 0
     )
 
-    static let auMatrixReverbDesc = AudioComponentDescription(
+    public static let auMatrixReverbDesc = AudioComponentDescription(
         componentType: 1_635_083_896,
         componentSubType: 1_836_213_622,
         componentManufacturer: 1_634_758_764,
@@ -20,11 +20,27 @@ struct DummyEngine {
         componentFlagsMask: 0
     )
 
-    static let auFilterDesc = AudioComponentDescription(
+    public static let auFilterDesc = AudioComponentDescription(
         componentType: 1_635_083_896,
         componentSubType: 1_718_185_076,
         componentManufacturer: 1_634_758_764,
         componentFlags: 2,
+        componentFlagsMask: 0
+    )
+
+    public static let auDynamicsProcessorDesc = AudioComponentDescription(
+        componentType: 1_635_083_896,
+        componentSubType: 1_684_237_680,
+        componentManufacturer: 1_634_758_764,
+        componentFlags: 2,
+        componentFlagsMask: 0
+    )
+
+    public static let wavesWLMDesc = AudioComponentDescription(
+        componentType: 1_635_083_896,
+        componentSubType: 1_464_618_323,
+        componentManufacturer: 1_802_721_110,
+        componentFlags: 0,
         componentFlagsMask: 0
     )
 
@@ -33,35 +49,37 @@ struct DummyEngine {
             AVAudioUnitComponent.component(matching: auDelayDesc),
             AVAudioUnitComponent.component(matching: auMatrixReverbDesc),
             AVAudioUnitComponent.component(matching: auFilterDesc),
+            AVAudioUnitComponent.component(matching: auDynamicsProcessorDesc),
+            AVAudioUnitComponent.component(matching: wavesWLMDesc)
         ].compactMap(\.self)
     }
 
     let _audioUnitManufactererCollection: [AudioUnitManufacturerCollection]
 
-    init() {
+    public init() {
         _audioUnitManufactererCollection = AudioUnitManufacturerCollection.createGroup(from: Self.components)
     }
 }
 
-extension DummyEngine: AudioUnitChainDelegate {
-    func audioUnitChain(_ audioUnitChain: AudioUnitChain, event: AudioUnitChainEvent) {
+extension TestAudioUnitContent: AudioUnitChainDelegate {
+    public func audioUnitChain(_ audioUnitChain: AudioUnitChain, event: AudioUnitChainEvent) {
         Log.debug(event)
     }
 
     // This is where the AVAudioEngine would perform the connection
-    func connectAndAttach(_ node1: AVAudioNode, to node2: AVAudioNode, format: AVAudioFormat?) async throws {
+    public func connectAndAttach(_ node1: AVAudioNode, to node2: AVAudioNode, format: AVAudioFormat?) async throws {
         Log.debug(
             "\(node1.resolvedName) to \(node2.resolvedName) with \(format?.readableDescription ?? "default engine format")"
         )
     }
 }
 
-extension DummyEngine: AudioUnitAvailability {
-    var availableAudioUnitComponents: [AVAudioUnitComponent]? {
+extension TestAudioUnitContent: AudioUnitAvailability {
+    public var availableAudioUnitComponents: [AVAudioUnitComponent]? {
         Self.components
     }
 
-    var audioUnitManufactererCollection: [AudioUnitManufacturerCollection] {
+    public var audioUnitManufactererCollection: [AudioUnitManufacturerCollection] {
         _audioUnitManufactererCollection
     }
 }

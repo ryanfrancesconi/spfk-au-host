@@ -106,7 +106,7 @@ public actor AudioUnitCacheManager {
     }
 
     deinit {
-        Log.debug("* { AudioUnitCacheManager }")
+        Log.debug("- { \(self) }")
     }
 
     public func cancelScan() {

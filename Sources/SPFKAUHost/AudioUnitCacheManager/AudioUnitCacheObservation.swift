@@ -52,7 +52,7 @@ public final class AudioUnitCacheObservation {
         isObserving = false
     }
 
-    @objc private func componentInstanceObserver(notification: Notification) async {
+    @objc private func componentInstanceObserver(notification: Notification) {
         guard let crashedAU = notification.object as? AUAudioUnit else {
             return
         }

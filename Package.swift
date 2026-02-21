@@ -14,8 +14,8 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/ryanfrancesconi/spfk-base", from: "0.0.1"),
-        .package(url: "https://github.com/ryanfrancesconi/spfk-utils", from: "0.0.1"),
+        .package(url: "https://github.com/ryanfrancesconi/spfk-base", from: "0.0.3"),
+        .package(url: "https://github.com/ryanfrancesconi/spfk-utils", from: "0.0.3"),
         .package(url: "https://github.com/ryanfrancesconi/spfk-testing", from: "0.0.1"),
     ],
     targets: [

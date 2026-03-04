@@ -54,10 +54,10 @@ public struct TestAudioUnitContent {
         ].compactMap(\.self)
     }
 
-    let _audioUnitManufactererCollection: [AudioUnitManufacturerCollection]
+    let _audioUnitManufacturerCollection: [AudioUnitManufacturerCollection]
 
     public init() {
-        _audioUnitManufactererCollection = AudioUnitManufacturerCollection.createGroup(from: Self.components)
+        _audioUnitManufacturerCollection = AudioUnitManufacturerCollection.createGroup(from: Self.components)
     }
 }
 
@@ -79,7 +79,7 @@ extension TestAudioUnitContent: AudioUnitAvailability {
         Self.components
     }
 
-    public var audioUnitManufactererCollection: [AudioUnitManufacturerCollection] {
-        _audioUnitManufactererCollection
+    public var audioUnitManufacturerCollection: [AudioUnitManufacturerCollection] {
+        _audioUnitManufacturerCollection
     }
 }

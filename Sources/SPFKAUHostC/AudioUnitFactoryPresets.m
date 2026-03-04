@@ -1,6 +1,6 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
-#import <CoreAudio/AudioHardware.h>
+#import <AudioToolbox/AudioToolbox.h>
 #import "AudioUnitFactoryPresets.h"
 
 @implementation AudioUnitFactoryPresets
@@ -29,10 +29,10 @@
     long count = CFArrayGetCount(array);
 
     // find the index of the preset
-    for (int i = 0; i < count - 1; i++) {
+    for (int i = 0; i < count; i++) {
         AUPreset *preset = (AUPreset *)CFArrayGetValueAtIndex(array, i);
 
-        if (preset->presetName == (__bridge CFStringRef _Nullable)(name)) {
+        if (CFStringCompare(preset->presetName, (__bridge CFStringRef)name, 0) == kCFCompareEqualTo) {
             index = i;
             break;
         }

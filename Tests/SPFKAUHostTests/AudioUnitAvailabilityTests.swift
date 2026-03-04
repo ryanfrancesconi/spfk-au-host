@@ -17,9 +17,9 @@ final class AudioUnitAvailabilityTests: TestCaseModel {
     }
 
     @Test func manufacturerCollection() async throws {
-        let collection = dummyEngine.audioUnitManufactererCollection
+        let collection = dummyEngine.audioUnitManufacturerCollection
 
-        #expect(dummyEngine.audioUnitManufactererCollection.count == 2)
+        #expect(dummyEngine.audioUnitManufacturerCollection.count == 2)
         #expect(collection.first?.components.count == 4)
 
         for company in collection {

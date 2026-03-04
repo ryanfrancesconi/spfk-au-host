@@ -98,7 +98,7 @@ public actor AudioUnitChainData {
         let element = effectsChain.remove(at: startIndex)
         effectsChain.insert(element, at: endIndex)
 
-        effectsChain[startIndex]?.isBypassed = bypassState
+        effectsChain[endIndex]?.isBypassed = bypassState
     }
 }
 

@@ -94,6 +94,7 @@ extension AudioUnitCacheManager {
             return results
         }
 
+        defer { scanTask = nil }
         return try await scanTask?.value ?? []
     }
 

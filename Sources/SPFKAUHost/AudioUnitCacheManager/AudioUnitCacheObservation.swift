@@ -21,7 +21,7 @@ public final class AudioUnitCacheObservation {
     public func start() {
         guard !isObserving else { return }
 
-        Log.debug("adding observors...")
+        Log.debug("adding observers...")
 
         // Sign up for a notification when the list of available components changes.
         NotificationCenter.default.addObserver(
@@ -44,7 +44,7 @@ public final class AudioUnitCacheObservation {
     public func stop() {
         guard isObserving else { return }
 
-        Log.debug("removing observors...")
+        Log.debug("removing observers...")
 
         NotificationCenter.default.removeObserver(self, name: .componentRegistrationsChanged, object: nil)
         NotificationCenter.default.removeObserver(self, name: .componentInstanceInvalidation, object: nil)

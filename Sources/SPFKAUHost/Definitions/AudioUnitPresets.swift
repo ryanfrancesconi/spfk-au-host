@@ -9,8 +9,8 @@ import SPFKUtils
 // TODO: review apis added after this class was written for preset management (if os available)
 
 public class AudioUnitPresets: AudioUnitFactoryPresets {
+    #if os(macOS)
     public enum Locations {
-        // macOS
         static var userPresets: URL {
             URL(fileURLWithPath: NSHomeDirectory())
                 .appendingPathComponent("Library")
@@ -43,13 +43,14 @@ public class AudioUnitPresets: AudioUnitFactoryPresets {
             )
 
             if !FileManager.default.fileExists(atPath: primaryURL.path) {
-                guard (try? FileManager.default.createDirectory(
-                    at: primaryURL,
-                    withIntermediateDirectories: true,
-                    attributes: nil
-                )
-                ) != nil else {
-                    Log.debug("Unable to create preset folder for \(url.path)")
+                do {
+                    try FileManager.default.createDirectory(
+                        at: primaryURL,
+                        withIntermediateDirectories: true,
+                        attributes: nil
+                    )
+                } catch {
+                    Log.error("Unable to create preset folder at \(primaryURL.path):", error.localizedDescription)
                     return nil
                 }
             }
@@ -84,6 +85,7 @@ public class AudioUnitPresets: AudioUnitFactoryPresets {
             return out
         }
     }
+    #endif
 
     // MARK: Create Preset XML
 

@@ -1,6 +1,6 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
-#import <CoreAudio/AudioHardware.h>
+#import <AudioToolbox/AudioToolbox.h>
 #import "AudioUnitStateC.h"
 
 @implementation AudioUnitStateC
@@ -58,6 +58,10 @@
             AUEventListenerNotify(NULL, NULL, &ev);
         }
     }
+
+    free(parameterIDs);
+
+    return status;
 }
 
 @end

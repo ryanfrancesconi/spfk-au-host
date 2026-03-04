@@ -1,7 +1,6 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
 import AEXML
-import AppKit
 import AVFoundation
 import SPFKBase
 import SwiftExtensions
@@ -98,9 +97,10 @@ extension AudioUnitCacheManager {
 
         var component: AVAudioUnitComponent?
 
-        if isEnabled, let avComponent = AVAudioUnitComponentManager.shared()
-            .components(matching: audioComponentDescription)
-            .first
+        if isEnabled,
+           let avComponent = AVAudioUnitComponentManager.shared()
+           .components(matching: audioComponentDescription)
+           .first
         {
             component = avComponent
         }
@@ -115,16 +115,25 @@ extension AudioUnitCacheManager {
 
         let validation = AudioUnitValidator.ValidationResult(result: validationResult ?? .passed)
 
-        let result: ComponentValidationResult = if let component {
-            ComponentValidationResult(
-                audioComponentDescription: audioComponentDescription,
-                component: component,
-                validation: validation,
-                isEnabled: isEnabled
-            )
-        } else {
-            ComponentValidationResult(audioComponentDescription: audioComponentDescription, validation: validation, isEnabled: isEnabled, name: item.attributes["name"] ?? "", typeName: item.attributes["typeName"] ?? "", manufacturerName: item.attributes["manufacturerName"] ?? "", versionString: item.attributes["version"] ?? "", icon: nil)
-        }
+        let result: ComponentValidationResult =
+            if let component {
+                ComponentValidationResult(
+                    audioComponentDescription: audioComponentDescription,
+                    component: component,
+                    validation: validation,
+                    isEnabled: isEnabled
+                )
+            } else {
+                ComponentValidationResult(
+                    audioComponentDescription: audioComponentDescription,
+                    validation: validation,
+                    isEnabled: isEnabled,
+                    name: item.attributes["name"] ?? "",
+                    typeName: item.attributes["typeName"] ?? "",
+                    manufacturerName: item.attributes["manufacturerName"] ?? "",
+                    versionString: item.attributes["version"] ?? ""
+                )
+            }
 
         return result
     }
@@ -157,13 +166,11 @@ extension AudioUnitCacheManager {
     /// Write current component collection to disk
     public func writeCache() async throws {
         guard let cacheURL else {
-            Log.error("*AU Failed to create cache URL")
-            return
+            throw NSError(description: "*AU Failed to create cache URL")
         }
 
         guard let effects: [ComponentValidationResult] = componentCollection?.validationResults else {
-            Log.error("*AU componentCollection is nil")
-            return
+            throw NSError(description: "*AU componentCollection is nil")
         }
 
         removeCache()
@@ -200,9 +207,11 @@ extension AudioUnitCacheManager {
         Log.debug("*AU Writing cache to", cacheURL)
 
         let string = doc.xml.removing(characters: .null)
-        try string.write(to: cacheURL,
-                         atomically: false,
-                         encoding: .utf8)
+        try string.write(
+            to: cacheURL,
+            atomically: false,
+            encoding: .utf8
+        )
 
         Log.debug("*AU Wrote cache to", cacheURL)
     }

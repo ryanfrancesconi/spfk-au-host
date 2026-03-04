@@ -1,13 +1,13 @@
 # SPFKAUHost
 
-Audio Unit (v3) hosting, validation, caching, and effects chain management for macOS.
+Audio Unit (v3) hosting, validation, caching, and effects chain management for macOS and iOS.
 
 ## Features
 
 - **Effects Chain** — Actor-based `AudioUnitChain` for loading, connecting, bypassing, reordering, and removing Audio Units in a serial chain between input and output nodes
 - **Component Caching** — XML-based cache system (`AudioUnitCacheManager`) for persisting validated Audio Unit component state across sessions
-- **Component Validation** — Multi-strategy validation pipeline using `AudioComponentValidate`, `AudioComponentValidateWithResults` (macOS 13+), and external `auval`/`auvaltool` fallback
-- **Preset Management** — Factory preset loading via C AudioToolbox APIs and user preset discovery from the `~/Library/Audio/Presets` hierarchy
+- **Component Validation** — Multi-strategy validation pipeline using `AudioComponentValidate`, `AudioComponentValidateWithResults` (macOS 13+/iOS 16+), and external `auval`/`auvaltool` fallback (macOS only)
+- **Preset Management** — Factory preset loading via C AudioToolbox APIs and user preset discovery from the `~/Library/Audio/Presets` hierarchy (macOS only)
 - **Full State Persistence** — Plist-based serialization and restoration of Audio Unit full state dictionaries for project save/load
 - **Host Musical Context** — Tempo, time signature, beat position, and transport state blocks for AUs that need host timing information
 - **Manufacturer Grouping** — `AudioUnitManufacturerCollection` for organizing available components into manufacturer-grouped hierarchies for menu display
@@ -156,8 +156,15 @@ struct MyEngine: AudioEngineConnection {
 - [**SPFKUtils**](https://github.com/ryanfrancesconi/spfk-utils) — Plist utilities, process handling, and audio extensions
 - [**SPFKTesting**](https://github.com/ryanfrancesconi/spfk-testing) — Test case base classes (test target only)
 
+## Platform Notes
+
+Most functionality is cross-platform. The following features are macOS-only:
+
+- **External `auval` validation** — Falls back to `AudioComponentValidate` API results on iOS
+- **User preset discovery** — `AudioUnitPresets.Locations` and `~/Library/Audio/Presets` browsing are unavailable on iOS; factory preset loading and full state persistence work on both platforms
+
 ## Requirements
 
-- macOS 12+
+- macOS 12+ / iOS 15+
 - Swift 6.2+
 - Xcode 26+

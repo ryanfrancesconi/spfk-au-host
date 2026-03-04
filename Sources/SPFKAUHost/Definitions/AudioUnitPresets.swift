@@ -43,13 +43,14 @@ public class AudioUnitPresets: AudioUnitFactoryPresets {
             )
 
             if !FileManager.default.fileExists(atPath: primaryURL.path) {
-                guard (try? FileManager.default.createDirectory(
-                    at: primaryURL,
-                    withIntermediateDirectories: true,
-                    attributes: nil
-                )
-                ) != nil else {
-                    Log.debug("Unable to create preset folder for \(url.path)")
+                do {
+                    try FileManager.default.createDirectory(
+                        at: primaryURL,
+                        withIntermediateDirectories: true,
+                        attributes: nil
+                    )
+                } catch {
+                    Log.error("Unable to create preset folder at \(primaryURL.path):", error.localizedDescription)
                     return nil
                 }
             }

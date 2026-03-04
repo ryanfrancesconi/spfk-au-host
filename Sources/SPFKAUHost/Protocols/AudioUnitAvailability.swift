@@ -6,5 +6,5 @@ import SPFKBase
 
 public protocol AudioUnitAvailability {
     var availableAudioUnitComponents: [AVAudioUnitComponent]? { get }
-    var audioUnitManufactererCollection: [AudioUnitManufacturerCollection] { get }
+    var audioUnitManufacturerCollection: [AudioUnitManufacturerCollection] { get }
 }

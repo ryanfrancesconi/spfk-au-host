@@ -1,6 +1,8 @@
 import Foundation
 
 public struct HostMusicalContext: Sendable {
+    public init() {}
+
     public var currentTempo: Double = 120
     public var timeSignatureNumerator: Double = 4
     public var timeSignatureDenominator: Int = 4

@@ -58,6 +58,10 @@
             AUEventListenerNotify(NULL, NULL, &ev);
         }
     }
+
+    free(parameterIDs);
+
+    return status;
 }
 
 @end

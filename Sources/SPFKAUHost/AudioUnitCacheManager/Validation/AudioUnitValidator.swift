@@ -2,7 +2,10 @@
 
 import AVFoundation
 import AudioToolbox
+
+#if os(macOS)
 import SPFKUtils
+#endif
 
 public class AudioUnitValidator {
     public struct ValidationResult: Sendable {
@@ -18,28 +21,11 @@ public class AudioUnitValidator {
         ] as CFDictionary
     }
 
-    public static var auval: URL? {
-        let cmd1 = URL(fileURLWithPath: "/usr/bin/auvaltool")
-
-        if cmd1.exists {
-            return cmd1
-        }
-
-        let cmd2 = URL(fileURLWithPath: "/usr/bin/auval")
-
-        if cmd2.exists {
-            return cmd2
-        }
-
-        // neither tool found
-        return nil
-    }
-
     public static func validate(component: AVAudioUnitComponent) -> ValidationResult {
         // note component.passesAUVal causes some AUs to hang indefinitely here
 
         let result: ValidationResult =
-            if #available(macOS 13.0, *) {
+            if #available(macOS 13.0, iOS 16.0, *) {
                 validateWithResults(component: component)
 
             } else {
@@ -50,7 +36,11 @@ public class AudioUnitValidator {
             return ValidationResult(result: .passed)
         }
 
+        #if os(macOS)
         return validateExternal(component: component)
+        #else
+        return result
+        #endif
     }
 
     // AudioComponentValidate
@@ -69,7 +59,7 @@ public class AudioUnitValidator {
         return ValidationResult(result: result)
     }
 
-    @available(macOS 13.0, *)
+    @available(macOS 13.0, iOS 16.0, *)
     static func validateWithResults(component: AVAudioUnitComponent) -> ValidationResult {
         let semaphore = DispatchSemaphore(value: 0)
 
@@ -85,6 +75,24 @@ public class AudioUnitValidator {
         Log.default("*AU validateWithResults", component.name, "result:", out.result.description)
 
         return out
+    }
+
+    #if os(macOS)
+    public static var auval: URL? {
+        let cmd1 = URL(fileURLWithPath: "/usr/bin/auvaltool")
+
+        if cmd1.exists {
+            return cmd1
+        }
+
+        let cmd2 = URL(fileURLWithPath: "/usr/bin/auval")
+
+        if cmd2.exists {
+            return cmd2
+        }
+
+        // neither tool found
+        return nil
     }
 
     static func validateExternal(component: AVAudioUnitComponent) -> ValidationResult {
@@ -143,6 +151,7 @@ public class AudioUnitValidator {
             .failed
         }
     }
+    #endif
 }
 
 extension AudioComponentValidationResult {

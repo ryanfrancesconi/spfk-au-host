@@ -1,7 +1,6 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
 @preconcurrency import AVFoundation
-import AppKit
 import SPFKBase
 
 public struct ComponentValidationResult: Sendable {
@@ -11,7 +10,6 @@ public struct ComponentValidationResult: Sendable {
     public let typeName: String
     public let manufacturerName: String
     public let versionString: String
-    public let icon: NSImage?
 
     public var validation: AudioUnitValidator.ValidationResult
     public var isEnabled: Bool
@@ -53,7 +51,6 @@ public struct ComponentValidationResult: Sendable {
         typeName = component.localizedTypeName
         manufacturerName = component.manufacturerName
         versionString = component.versionString
-        icon = component.icon
     }
 
     public init(
@@ -64,7 +61,6 @@ public struct ComponentValidationResult: Sendable {
         typeName: String,
         manufacturerName: String,
         versionString: String,
-        icon: NSImage?
     ) {
         component = nil
         self.audioComponentDescription = audioComponentDescription
@@ -74,6 +70,5 @@ public struct ComponentValidationResult: Sendable {
         self.typeName = typeName
         self.manufacturerName = manufacturerName
         self.versionString = versionString
-        self.icon = icon
     }
 }

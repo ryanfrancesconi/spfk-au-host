@@ -62,7 +62,7 @@ struct S_AVAudioUnitComponentTests {
         guard let delayComponent = AVAudioUnitComponentManager.shared()
             .components(matching: delayDesc).first,
             let reverbComponent = AVAudioUnitComponentManager.shared()
-                .components(matching: reverbDesc).first
+            .components(matching: reverbDesc).first
         else {
             return
         }
@@ -104,8 +104,7 @@ struct SystemComponentsResponseTests {
             name: "Test",
             typeName: "Effect",
             manufacturerName: "Apple",
-            versionString: "1.0",
-            icon: nil
+            versionString: "1.0"
         )
 
         let response = SystemComponentsResponse(results: [result])

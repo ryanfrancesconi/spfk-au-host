@@ -42,8 +42,7 @@ struct ComponentCollectionTests {
                 name: "Test",
                 typeName: "Effect",
                 manufacturerName: "Apple",
-                versionString: "1.0",
-                icon: nil
+                versionString: "1.0"
             )
         }
     }

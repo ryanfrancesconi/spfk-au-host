@@ -47,8 +47,7 @@ struct ComponentValidationResultTests {
             name: "TestAU",
             typeName: "Effect",
             manufacturerName: "TestMfg",
-            versionString: "2.0",
-            icon: nil
+            versionString: "2.0"
         )
 
         #expect(result.name == "TestAU")
@@ -86,8 +85,7 @@ struct ComponentValidationResultTests {
             name: "Test",
             typeName: "Effect",
             manufacturerName: "Apple",
-            versionString: "1.0",
-            icon: nil
+            versionString: "1.0"
         )
 
         // Without a component, supportsStereo returns false
@@ -102,8 +100,7 @@ struct ComponentValidationResultTests {
             name: "Test",
             typeName: "Effect",
             manufacturerName: "Apple",
-            versionString: "1.0",
-            icon: nil
+            versionString: "1.0"
         )
 
         #expect(result.supportsMono == false)
@@ -117,8 +114,7 @@ struct ComponentValidationResultTests {
             name: "Test",
             typeName: "Effect",
             manufacturerName: "Apple",
-            versionString: "1.0",
-            icon: nil
+            versionString: "1.0"
         )
 
         #expect(result.supportsStereo == false)
@@ -151,8 +147,7 @@ struct ComponentValidationResultTests {
             name: "Test",
             typeName: "Effect",
             manufacturerName: "Apple",
-            versionString: "1.0",
-            icon: nil
+            versionString: "1.0"
         )
 
         let desc = result.description
@@ -167,8 +162,7 @@ struct ComponentValidationResultTests {
             name: "Test",
             typeName: "Effect",
             manufacturerName: "Apple",
-            versionString: "1.0",
-            icon: nil
+            versionString: "1.0"
         )
 
         #expect(result.isEnabled == true)

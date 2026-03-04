@@ -9,8 +9,8 @@ import SPFKUtils
 // TODO: review apis added after this class was written for preset management (if os available)
 
 public class AudioUnitPresets: AudioUnitFactoryPresets {
+    #if os(macOS)
     public enum Locations {
-        // macOS
         static var userPresets: URL {
             URL(fileURLWithPath: NSHomeDirectory())
                 .appendingPathComponent("Library")
@@ -85,6 +85,7 @@ public class AudioUnitPresets: AudioUnitFactoryPresets {
             return out
         }
     }
+    #endif
 
     // MARK: Create Preset XML
 

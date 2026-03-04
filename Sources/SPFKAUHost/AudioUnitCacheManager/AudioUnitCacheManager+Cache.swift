@@ -1,8 +1,8 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
 import AEXML
-import AppKit
 import AVFoundation
+import AppKit
 import SPFKBase
 import SwiftExtensions
 
@@ -46,7 +46,7 @@ extension AudioUnitCacheManager {
 
     func parse(cache doc: AEXMLDocument) async throws -> SystemComponentsResponse {
         guard let collection = doc.root["au"].all,
-              collection.isNotEmpty
+            collection.isNotEmpty
         else {
             throw NSError(description: "*AU No entries in cache file")
         }
@@ -71,8 +71,8 @@ extension AudioUnitCacheManager {
 
     private func parse(cacheItem item: AEXMLElement) -> ComponentValidationResult? {
         guard let componentType = item.attributes["componentType"]?.uInt32,
-              let componentSubType = item.attributes["componentSubType"]?.uInt32,
-              let componentManufacturer = item.attributes["componentManufacturer"]?.uInt32
+            let componentSubType = item.attributes["componentSubType"]?.uInt32,
+            let componentManufacturer = item.attributes["componentManufacturer"]?.uInt32
         else {
             Log.error("Failed to create required data from \(item.xmlCompact)")
 
@@ -98,9 +98,10 @@ extension AudioUnitCacheManager {
 
         var component: AVAudioUnitComponent?
 
-        if isEnabled, let avComponent = AVAudioUnitComponentManager.shared()
-            .components(matching: audioComponentDescription)
-            .first
+        if isEnabled,
+            let avComponent = AVAudioUnitComponentManager.shared()
+                .components(matching: audioComponentDescription)
+                .first
         {
             component = avComponent
         }
@@ -108,23 +109,28 @@ extension AudioUnitCacheManager {
         var validationResult: AudioComponentValidationResult?
 
         if let desc = item.attributes["validation"],
-           let value = AudioComponentValidationResult(description: desc)
+            let value = AudioComponentValidationResult(description: desc)
         {
             validationResult = value
         }
 
         let validation = AudioUnitValidator.ValidationResult(result: validationResult ?? .passed)
 
-        let result: ComponentValidationResult = if let component {
-            ComponentValidationResult(
-                audioComponentDescription: audioComponentDescription,
-                component: component,
-                validation: validation,
-                isEnabled: isEnabled
-            )
-        } else {
-            ComponentValidationResult(audioComponentDescription: audioComponentDescription, validation: validation, isEnabled: isEnabled, name: item.attributes["name"] ?? "", typeName: item.attributes["typeName"] ?? "", manufacturerName: item.attributes["manufacturerName"] ?? "", versionString: item.attributes["version"] ?? "", icon: nil)
-        }
+        let result: ComponentValidationResult =
+            if let component {
+                ComponentValidationResult(
+                    audioComponentDescription: audioComponentDescription,
+                    component: component,
+                    validation: validation,
+                    isEnabled: isEnabled
+                )
+            } else {
+                ComponentValidationResult(
+                    audioComponentDescription: audioComponentDescription, validation: validation, isEnabled: isEnabled,
+                    name: item.attributes["name"] ?? "", typeName: item.attributes["typeName"] ?? "",
+                    manufacturerName: item.attributes["manufacturerName"] ?? "",
+                    versionString: item.attributes["version"] ?? "", icon: nil)
+            }
 
         return result
     }
@@ -200,9 +206,10 @@ extension AudioUnitCacheManager {
         Log.debug("*AU Writing cache to", cacheURL)
 
         let string = doc.xml.removing(characters: .null)
-        try string.write(to: cacheURL,
-                         atomically: false,
-                         encoding: .utf8)
+        try string.write(
+            to: cacheURL,
+            atomically: false,
+            encoding: .utf8)
 
         Log.debug("*AU Wrote cache to", cacheURL)
     }

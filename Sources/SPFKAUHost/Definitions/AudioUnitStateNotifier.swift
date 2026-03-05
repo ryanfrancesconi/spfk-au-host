@@ -15,64 +15,13 @@ public enum AudioUnitStateNotifier {
     /// - Returns: The `OSStatus` from the last Core Audio call, or `noErr` on success.
     @discardableResult
     public static func notifyListeners(of audioUnit: AudioUnit) -> OSStatus {
-        var parameterListSize: UInt32 = 0
-
-        var status = AudioUnitGetPropertyInfo(
-            audioUnit,
-            kAudioUnitProperty_ParameterList,
-            kAudioUnitScope_Global,
-            0,
-            &parameterListSize,
-            nil
+        var parameter = AudioUnitParameter(
+            mAudioUnit: audioUnit,
+            mParameterID: kAUParameterListener_AnyParameter,
+            mScope: kAudioUnitScope_Global,
+            mElement: 0
         )
-
-        guard status == noErr else { return status }
-
-        let parameterCount = Int(parameterListSize) / MemoryLayout<AudioUnitParameterID>.size
-        guard parameterCount > 0 else { return noErr }
-
-        var parameterIDs = [AudioUnitParameterID](repeating: 0, count: parameterCount)
-
-        status = AudioUnitGetProperty(
-            audioUnit,
-            kAudioUnitProperty_ParameterList,
-            kAudioUnitScope_Global,
-            0,
-            &parameterIDs,
-            &parameterListSize
-        )
-
-        guard status == noErr else { return status }
-
-        for parameterID in parameterIDs {
-            var parameterInfo = AudioUnitParameterInfo()
-            var parameterInfoSize = UInt32(MemoryLayout<AudioUnitParameterInfo>.size)
-
-            guard AudioUnitGetProperty(
-                audioUnit,
-                kAudioUnitProperty_ParameterInfo,
-                kAudioUnitScope_Global,
-                parameterID,
-                &parameterInfo,
-                &parameterInfoSize
-            ) == noErr else { continue }
-
-            var event = AudioUnitEvent(
-                mEventType: .parameterValueChange,
-                mArgument: AudioUnitEvent.__Unnamed_union_mArgument(
-                    mParameter: AudioUnitParameter(
-                        mAudioUnit: audioUnit,
-                        mParameterID: parameterID,
-                        mScope: kAudioUnitScope_Global,
-                        mElement: 0
-                    )
-                )
-            )
-
-            AUEventListenerNotify(nil, nil, &event)
-        }
-
-        return noErr
+        return AUParameterListenerNotify(nil, nil, &parameter)
     }
 
     /// Loads a named factory preset into the audio unit.

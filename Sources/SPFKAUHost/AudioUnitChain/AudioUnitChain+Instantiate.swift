@@ -5,6 +5,7 @@ import AVFoundation
 import SPFKBase
 
 extension AudioUnitChain {
+    /// Returns whether an audio component matching the given description is available on the system.
     public static func isAvailable(componentDescription: AudioComponentDescription) -> Bool {
         AVAudioUnitComponent.component(matching: componentDescription) != nil
     }
@@ -36,6 +37,7 @@ extension AudioUnitChain {
         return nil
     }
 
+    /// Creates an effect audio unit with the specified instantiation options.
     public static func createEffect(
         componentDescription: AudioComponentDescription,
         options: AudioComponentInstantiationOptions
@@ -46,12 +48,14 @@ extension AudioUnitChain {
         )
     }
 
+    /// Creates a MIDI instrument audio unit from the given component description.
     public static func createInstrument(
         componentDescription: AudioComponentDescription
     ) async throws -> AVAudioUnitMIDIInstrument? {
         try await createEffect(componentDescription: componentDescription) as? AVAudioUnitMIDIInstrument
     }
 
+    /// Creates a MIDI instrument audio unit with the specified instantiation options.
     public static func createInstrument(
         componentDescription: AudioComponentDescription,
         options: AudioComponentInstantiationOptions

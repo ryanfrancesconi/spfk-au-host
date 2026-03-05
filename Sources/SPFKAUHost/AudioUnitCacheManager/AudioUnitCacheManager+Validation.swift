@@ -8,6 +8,7 @@ import SPFKBase
 import SwiftExtensions
 
 extension AudioUnitCacheManager {
+    /// The total number of registered audio components on the system.
     public static var audioComponentCount: Int {
         var desc = AudioComponentDescription.wildcard
         let count = AudioComponentCount(&desc)
@@ -53,6 +54,7 @@ extension AudioUnitCacheManager {
         return components.removingDuplicatesRandomOrdering()
     }
 
+    /// Returns whether the given component description requires validation (excludes Apple and Spongefork components).
     public static func shouldValidate(audioComponentDescription: AudioComponentDescription) -> Bool {
         let manufacturer = audioComponentDescription.componentManufacturer
 
@@ -60,6 +62,7 @@ extension AudioUnitCacheManager {
             manufacturer != kAudioUnitManufacturer_Spongefork
     }
 
+    /// Validates the given components (or all compatible components if nil) and returns their validation results.
     public func validate(components: [AVAudioUnitComponent]? = nil) async throws -> [ComponentValidationResult] {
         scanTask = Task<[ComponentValidationResult], Error>(priority: .high) {
             var results = [ComponentValidationResult]()

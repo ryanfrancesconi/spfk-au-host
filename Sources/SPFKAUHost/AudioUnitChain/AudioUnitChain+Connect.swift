@@ -14,6 +14,7 @@ extension AudioUnitChain {
         }
     }
 
+    /// Removes the effect at the specified index from the chain.
     public func removeEffect(at index: Int, reconnectChain: Bool = true, sendEvent: Bool = true) async throws {
         if sendEvent {
             delegate?.audioUnitChain(self, event: .willRemove(index: index))
@@ -39,6 +40,7 @@ extension AudioUnitChain {
         try await connect()
     }
 
+    /// Sets the bypass state of the effect at the specified index.
     public func bypassEffect(at index: Int, state: Bool, reconnect: Bool) async throws {
         delegate?.audioUnitChain(self, event: .willBypass(index: index, state: state))
 
@@ -53,6 +55,7 @@ extension AudioUnitChain {
         delegate?.audioUnitChain(self, event: .didBypass(index: index, state: state))
     }
 
+    /// Moves an effect from one position to another in the chain and reconnects.
     public func moveEffect(from startIndex: Int, to endIndex: Int) async throws {
         try await data.moveEffect(from: startIndex, to: endIndex)
         try await connect()

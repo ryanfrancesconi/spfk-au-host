@@ -17,14 +17,18 @@ public actor AudioUnitChain {
     /// last node in chain, generally a mixer or some kind of output
     public var output: AVAudioNode?
 
+    /// The available Audio Unit components provided by the delegate.
     public var availableAudioUnitComponents: [AVAudioUnitComponent] {
         delegate?.availableAudioUnitComponents ?? []
     }
 
+    /// The actor managing the effects slot array and per-slot state.
     public var data: AudioUnitChainData
 
-    // copied here so can be referenced from synchronous contexts
+    /// The number of active effects, copied for synchronous access.
     public internal(set) var effectsCount: Int = 0
+
+    /// The combined latency of all active effects, copied for synchronous access.
     public internal(set) var effectsLatency: TimeInterval = 0
 
     /// flag if the entire effects chain is bypassed
@@ -48,6 +52,7 @@ public actor AudioUnitChain {
         data = AudioUnitChainData(insertCount: inserts)
     }
 
+    /// Create a chain with the default number of inserts, input, and output nodes.
     public init(delegate: AudioUnitChainDelegate, input: AVAudioNode, output: AVAudioNode) async throws {
         self.delegate = delegate
 
@@ -56,6 +61,7 @@ public actor AudioUnitChain {
         try await updateIO(input: input, output: output)
     }
 
+    /// Updates the input and output nodes and reconnects the chain.
     public func updateIO(input: AVAudioNode, output: AVAudioNode) async throws {
         self.input = input
         self.output = output
@@ -80,6 +86,7 @@ public actor AudioUnitChain {
 }
 
 extension AudioUnitChain {
+    /// A human-readable summary of the effects chain, e.g. `"2/6 Audio Units: AUDelay, AUReverb"`.
     public var effectsDescription: String {
         get async {
             let count = await data.insertCount
@@ -96,6 +103,7 @@ extension AudioUnitChain {
         }
     }
 
+    /// A multi-line description of the chain's input, effects, and output connections.
     public var connectionDescription: String {
         get async {
             guard let input, let output else { return "no I/O set" }

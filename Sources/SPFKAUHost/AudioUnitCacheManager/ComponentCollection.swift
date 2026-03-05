@@ -4,13 +4,17 @@ import SPFKAudioBase
 import SPFKAUHostC
 import SPFKUtils
 
+/// A collection of Audio Unit component validation results with filtering and update capabilities.
 public struct ComponentCollection: Sendable {
+    /// Whether this collection contains no validation results.
     public var isEmpty: Bool {
         validationResults.isEmpty
     }
 
+    /// All validation results in this collection.
     public var validationResults: [ComponentValidationResult]
 
+    /// Validation results that passed and are format-compatible, sorted by description.
     public var passedEffects: [ComponentValidationResult] {
         validationResults.filter {
             $0.validation.result == .passed && $0.isFormatCompatible
@@ -20,6 +24,7 @@ public struct ComponentCollection: Sendable {
         }
     }
 
+    /// Validation results for components that are not format-compatible, sorted by description.
     public var unavailableEffects: [ComponentValidationResult] {
         validationResults.filter {
             !$0.isFormatCompatible
@@ -28,6 +33,7 @@ public struct ComponentCollection: Sendable {
         }
     }
 
+    /// Validation results for components that did not pass validation, sorted by description.
     public var failedEffects: [ComponentValidationResult] {
         validationResults.filter {
             $0.validation.result != .passed
@@ -36,6 +42,7 @@ public struct ComponentCollection: Sendable {
         }
     }
 
+    /// A formatted summary of validation results grouped by passed, failed, and unavailable components.
     public var validationDescription: String {
         func flatten(collection: [ComponentValidationResult], title: String) -> String {
             var text = ""
@@ -91,12 +98,14 @@ public struct ComponentCollection: Sendable {
         return text
     }
 
+    /// Sorted list of unique Audio Unit type names present in the collection.
     public var effectTypes: [String] {
         validationResults.compactMap {
             $0.component?.typeName
         }.removingDuplicatesRandomOrdering().sorted()
     }
 
+    /// Creates a collection from the given validation results, filtering out Spongefork components.
     public init(results: [ComponentValidationResult]) {
         validationResults = results.filter {
             $0.audioComponentDescription.componentManufacturer !=
@@ -104,6 +113,7 @@ public struct ComponentCollection: Sendable {
         }
     }
 
+    /// Updates the enabled state for all results matching the given audio component description.
     public mutating func update(audioComponentDescription: AudioComponentDescription, isEnabled: Bool) {
         for i in 0 ..< validationResults.count
             where validationResults[i].audioComponentDescription.matches(audioComponentDescription)
@@ -113,6 +123,7 @@ public struct ComponentCollection: Sendable {
         }
     }
 
+    /// Updates the validation result for all entries matching the given result's audio component description.
     public mutating func update(result: ComponentValidationResult) {
         for i in 0 ..< validationResults.count
             where validationResults[i].audioComponentDescription.matches(result.audioComponentDescription)
@@ -122,6 +133,7 @@ public struct ComponentCollection: Sendable {
         }
     }
 
+    /// Restores enabled states from another collection by matching audio component descriptions.
     public mutating func updateEnabled(from collection: ComponentCollection) {
         for item in collection.validationResults {
             update(audioComponentDescription: item.audioComponentDescription, isEnabled: item.isEnabled)

@@ -1,5 +1,7 @@
 # SPFKAUHost
 
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fryanfrancesconi%2Fspfk-au-host%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/ryanfrancesconi/spfk-au-host) [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fryanfrancesconi%2Fspfk-au-host%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/ryanfrancesconi/spfk-au-host)
+
 Audio Unit (v3) hosting, validation, caching, and effects chain management for macOS and iOS.
 
 ## Features
@@ -155,9 +157,11 @@ struct MyEngine: AudioEngineConnection {
 
 ## Dependencies
 
-- [**SPFKBase**](https://github.com/ryanfrancesconi/spfk-base) — Logging, extensions, and base utilities
-- [**SPFKUtils**](https://github.com/ryanfrancesconi/spfk-utils) — Plist utilities, process handling, and audio extensions
-- [**SPFKTesting**](https://github.com/ryanfrancesconi/spfk-testing) — Test case base classes (test target only)
+| Package | Description |
+|---|---|
+| [SPFKBase](https://github.com/ryanfrancesconi/spfk-base) | Logging, extensions, and base utilities |
+| [SPFKUtils](https://github.com/ryanfrancesconi/spfk-utils) | Plist utilities, process handling, and audio extensions |
+| [SPFKTesting](https://github.com/ryanfrancesconi/spfk-testing) | Test case base classes (test target only) |
 
 ## Platform Notes
 
@@ -171,3 +175,8 @@ Most functionality is cross-platform. The following features are macOS-only:
 - macOS 12+ / iOS 15+
 - Swift 6.2+
 - Xcode 26+
+
+## About
+
+Spongefork (SPFK) is the personal software projects of [Ryan Francesconi](https://github.com/ryanfrancesconi). Dedicated to creative sound manipulation, his first application, Spongefork, was released in 1999 for macOS 8. From 2016 to 2025 he was the lead macOS developer at [Audio Design Desk](https://add.app).
+

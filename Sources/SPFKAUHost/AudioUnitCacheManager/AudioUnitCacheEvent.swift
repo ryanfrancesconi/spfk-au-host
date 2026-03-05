@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 
+/// Events emitted during audio unit cache discovery and validation.
 public enum AudioUnitCacheEvent: Sendable {
     case cachingStarted
     case cacheUpdated

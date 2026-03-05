@@ -12,8 +12,10 @@ public struct AudioUnitDescription: Equatable, Sendable {
         lhs.avAudioUnit == rhs.avAudioUnit
     }
 
+    /// The resolved display name of the audio unit.
     public let name: String?
 
+    /// The underlying `AudioComponentDescription` identifying this audio unit's type, subtype, and manufacturer.
     public var audioComponentDescription: AudioComponentDescription {
         avAudioUnit.audioComponentDescription
     }
@@ -31,17 +33,21 @@ public struct AudioUnitDescription: Equatable, Sendable {
         }
     }
 
+    /// The full state of the audio unit serialized as an XML plist element, if available.
     public var fullStatePlist: AEXMLElement? {
         AudioUnitPresets.fullStateDocument(for: avAudioUnit)?.root
     }
 
+    /// The wrapped `AVAudioUnit` instance.
     public private(set) var avAudioUnit: AVAudioUnit
 
+    /// Creates a new description wrapping the given `AVAudioUnit`.
     public init(avAudioUnit: AVAudioUnit) {
         self.avAudioUnit = avAudioUnit
         name = avAudioUnit.resolvedName
     }
 
+    /// Releases resources by clearing context blocks and detaching the audio unit from the engine.
     public func dispose() throws {
         avAudioUnit.auAudioUnit.musicalContextBlock = nil
         avAudioUnit.auAudioUnit.transportStateBlock = nil

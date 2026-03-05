@@ -5,19 +5,24 @@ import AVFoundation
 import SPFKBase
 import SwiftExtensions
 
+/// Manages caching and validation of Audio Unit components on the system.
 public actor AudioUnitCacheManager {
+    /// The delegate that receives cache manager events.
     public weak var delegate: AudioUnitCacheManagerDelegate?
+    /// Updates the delegate reference.
     public func update(delegate: AudioUnitCacheManagerDelegate?) {
         self.delegate = delegate
     }
 
     /// Where it writes its xml cache file. Can be set to an alternate directory for testing.
     public var cachesDirectory: URL?
+    /// Updates the directory used for writing the XML cache file.
     public func update(cachesDirectory: URL) {
         self.cachesDirectory = cachesDirectory
     }
 
     var cacheURL: URL?
+    /// Updates the URL used for the cache file, falling back to the default location if nil.
     public func update(cacheURL: URL?) {
         self.cacheURL = cacheURL ?? defaultCacheURL()
     }
@@ -58,10 +63,12 @@ public actor AudioUnitCacheManager {
         componentCollection?.updateEnabled(from: value)
     }
 
+    /// Updates a specific validation result within the component collection.
     public func update(componentCollectionResult result: ComponentValidationResult) {
         componentCollection?.update(result: result)
     }
 
+    /// Updates the enabled state for a component matching the given audio component description.
     public func update(audioComponentDescription: AudioComponentDescription, isEnabled: Bool) {
         componentCollection?.update(audioComponentDescription: audioComponentDescription, isEnabled: isEnabled)
     }
@@ -78,6 +85,7 @@ public actor AudioUnitCacheManager {
         AVAudioUnitVarispeed().audioComponentDescription,
     ]
 
+    /// A textual description of all compatible Audio Units and the cache file path.
     public var debugDescription: String {
         let names = AudioUnitCacheManager.compatibleComponents.map(\.name).sorted()
 
@@ -94,11 +102,13 @@ public actor AudioUnitCacheManager {
 
     var cacheObservation: AudioUnitCacheObservation = .init()
 
+    /// Creates a new cache manager with an optional caches directory and delegate.
     public init(cachesDirectory: URL? = nil, delegate: AudioUnitCacheManagerDelegate? = nil) {
         self.cachesDirectory = cachesDirectory
         self.delegate = delegate
     }
 
+    /// Stops observation and releases the component collection.
     public func dispose() {
         cacheObservation.stop()
         componentCollection = nil
@@ -108,6 +118,7 @@ public actor AudioUnitCacheManager {
         Log.debug("- { \(self) }")
     }
 
+    /// Cancels any in-progress component validation scan.
     public func cancelScan() {
         guard isScanning else {
             Log.error("isScanning is false")
@@ -165,6 +176,8 @@ public actor AudioUnitCacheManager {
     }
 }
 
+/// Delegate protocol for receiving Audio Unit cache manager events.
 public protocol AudioUnitCacheManagerDelegate: AnyObject, Sendable {
+    /// Called when the cache manager produces an event such as loading or validation progress.
     func handleAudioUnitCacheManager(event: AudioUnitCacheEvent) async
 }

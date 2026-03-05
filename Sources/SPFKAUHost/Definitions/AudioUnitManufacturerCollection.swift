@@ -6,19 +6,27 @@ import Foundation
 
 /// System `AudioComponentDescription` collection grouped by Manufacturer
 public struct AudioUnitManufacturerCollection: Equatable, Hashable, Sendable {
+    /// Equality is determined by matching the manufacturer identifier.
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.manufacturer == rhs.manufacturer
     }
 
+    /// Hashes by manufacturer and name.
     public func hash(into hasher: inout Hasher) {
         hasher.combine(manufacturer)
         hasher.combine(name)
     }
 
+    /// The display name of the manufacturer.
     public let name: String
+
+    /// The four-character manufacturer code.
     public let manufacturer: OSType
+
+    /// The audio unit components belonging to this manufacturer.
     public let components: [S_AVAudioUnitComponent]
 
+    /// Creates a manufacturer collection with the given name, manufacturer code, and components.
     public init(
         name: String,
         manufacturer: OSType,
@@ -31,6 +39,7 @@ public struct AudioUnitManufacturerCollection: Equatable, Hashable, Sendable {
 }
 
 extension AudioUnitManufacturerCollection {
+    /// Groups the given audio unit components by manufacturer and returns a sorted array of collections.
     public static func createGroup(from components: [AVAudioUnitComponent]) -> [AudioUnitManufacturerCollection] {
         let manufacturerSet = Set(
             components.map {

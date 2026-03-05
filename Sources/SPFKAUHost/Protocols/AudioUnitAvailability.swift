@@ -4,6 +4,7 @@ import AVFoundation
 import Foundation
 import SPFKBase
 
+/// Protocol for types that provide a list of available Audio Unit components and manufacturer groupings.
 public protocol AudioUnitAvailability {
     var availableAudioUnitComponents: [AVAudioUnitComponent]? { get }
     var audioUnitManufacturerCollection: [AudioUnitManufacturerCollection] { get }

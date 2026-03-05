@@ -6,6 +6,7 @@ import SPFKBase
 import SwiftExtensions
 
 extension AudioUnitCacheManager {
+    /// Whether the cached component count differs from the current system count, indicating a rescan is needed.
     public var validationIsNeeded: Bool {
         AudioUnitCacheManager.compatibleComponents.count != cachedComponentCount
     }

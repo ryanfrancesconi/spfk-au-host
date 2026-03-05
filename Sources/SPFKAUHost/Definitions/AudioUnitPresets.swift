@@ -8,8 +8,10 @@ import SPFKUtils
 
 // TODO: review apis added after this class was written for preset management (if os available)
 
+/// Manages loading and locating audio unit presets, including user presets on disk.
 public class AudioUnitPresets: AudioUnitFactoryPresets {
     #if os(macOS)
+    /// File system locations for user audio unit presets.
     public enum Locations {
         static var userPresets: URL {
             URL(fileURLWithPath: NSHomeDirectory())
@@ -18,6 +20,7 @@ public class AudioUnitPresets: AudioUnitFactoryPresets {
                 .appendingPathComponent("Presets")
         }
 
+        /// Returns the user preset folder URLs for the given audio unit, creating the primary folder if needed.
         public static func getPresetsFolders(for audioUnit: AVAudioUnit) -> [URL]? {
             let url = AudioUnitPresets.Locations.userPresets
 
@@ -58,6 +61,7 @@ public class AudioUnitPresets: AudioUnitFactoryPresets {
             return urls
         }
 
+        /// Returns the URLs of all `.aupreset` files found in the user preset folders for the given audio unit.
         public static func getUserPresets(for audioUnit: AVAudioUnit) -> [URL]? {
             guard let presetsFolders = getPresetsFolders(for: audioUnit) else {
                 Log.error("Failed to get presets folder for", audioUnit.auAudioUnit.audioUnitName)
@@ -95,6 +99,7 @@ public class AudioUnitPresets: AudioUnitFactoryPresets {
         return try? PlistUtilities.dictionaryToPlist(dictionary: state)
     }
 
+    /// Loads a preset from an XML element into the audio unit, returning the parsed full state dictionary.
     @discardableResult
     public static func loadPreset(for avAudioUnit: AVAudioUnit, element: AEXMLElement) -> [String: Any]? {
         guard let fullState = try? PlistUtilities.plistToDictionary(element: element) else {
@@ -106,6 +111,7 @@ public class AudioUnitPresets: AudioUnitFactoryPresets {
         return fullState
     }
 
+    /// Applies the given full state dictionary to the audio unit and notifies listeners of the change.
     public static func loadPreset(for avAudioUnit: AVAudioUnit, fullState: [String: Any]) {
         avAudioUnit.auAudioUnit.fullState = fullState
 

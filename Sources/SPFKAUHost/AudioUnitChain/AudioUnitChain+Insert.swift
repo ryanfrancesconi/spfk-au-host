@@ -5,6 +5,7 @@ import Foundation
 import SPFKUtils
 
 extension AudioUnitChain {
+    /// Loads a complete effects chain from an array of effect descriptions, replacing any existing effects.
     @discardableResult
     public func load(chainDescription: [AudioEffectDescription]) async throws -> [Error?] {
         //
@@ -31,7 +32,7 @@ extension AudioUnitChain {
         return errors
     }
 
-    // returns on global thread
+    /// Inserts an audio unit from an effect description at the given index, applying any saved state.
     public func insertAudioUnit(
         effectDescription: AudioEffectDescription,
         at index: Int

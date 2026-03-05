@@ -7,9 +7,13 @@ import AudioToolbox
 import SPFKUtils
 #endif
 
+/// Validates Audio Unit components using system APIs and optional external tools.
 public class AudioUnitValidator {
+    /// The outcome of validating a single Audio Unit, including the result status and optional output.
     public struct ValidationResult: Sendable {
+        /// The validation result status (e.g., passed, failed, timed out).
         public var result: AudioComponentValidationResult
+        /// Optional output text from the validation process.
         public var output: String?
     }
 
@@ -21,6 +25,7 @@ public class AudioUnitValidator {
         ] as CFDictionary
     }
 
+    /// Validates the given Audio Unit component, falling back to external validation on macOS if needed.
     public static func validate(component: AVAudioUnitComponent) -> ValidationResult {
         // note component.passesAUVal causes some AUs to hang indefinitely here
 
@@ -78,6 +83,7 @@ public class AudioUnitValidator {
     }
 
     #if os(macOS)
+    /// The URL to the `auvaltool` or `auval` command-line utility, or nil if neither is found.
     public static var auval: URL? {
         let cmd1 = URL(fileURLWithPath: "/usr/bin/auvaltool")
 
@@ -182,6 +188,7 @@ extension AudioComponentValidationResult {
         }
     }
 
+    /// Creates a validation result from its string description, or returns nil if unrecognized.
     public init?(description: String) {
         switch description {
         case "Unknown":

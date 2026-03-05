@@ -1,30 +1,24 @@
 import AudioToolbox
 import Foundation
 
+/// Transport state provided to hosted Audio Units via `AUHostTransportStateBlock`.
+///
+/// Contains transport flags, playhead position, and cycle boundaries that AUs
+/// can use to synchronize with the host's transport.
 public struct HostTransportState: Sendable {
     public init() {}
 
-    /**
-     @constant    AUHostTransportStateChanged
-         True if, since the callback was last called, there was a change to the state of, or
-         discontinuities in, the host's transport. Can indicate such state changes as
-         start/stop, or seeking to another position in the timeline.
-     @constant    AUHostTransportStateMoving
-         True if the transport is moving.
-     @constant    AUHostTransportStateRecording
-         True if the host is recording, or prepared to record. Can be true with or without the
-         transport moving.
-     @constant    AUHostTransportStateCycling
-         True if the host is cycling or looping.
-     */
+    /// The current state of the transport.
+    ///
+    /// Flags indicate whether the transport has changed, is moving, recording, or cycling.
     public var flags = AUHostTransportStateFlags()
 
-    /// Current time of the timeline in samples at the rate of the audio device
+    /// Current position in the host's timeline, in samples at the audio unit's output sample rate.
     public var currentSamplePosition: Double = 0
 
-    // fractional beat number of loop start
+    /// The fractional beat number of the cycle (loop) start position.
     public var cycleStartBeatPosition: Double = 0
 
-    // fractional beat number of loop end
+    /// The fractional beat number of the cycle (loop) end position.
     public var cycleEndBeatPosition: Double = 0
 }

@@ -4,20 +4,27 @@ import AVFoundation
 import Foundation
 import SPFKBase
 
+/// Observes system notifications for Audio Unit component registration changes and invalidations.
 public final class AudioUnitCacheObservation {
+    /// Events that can occur when the system's Audio Unit registrations change.
     public enum Event: Sendable {
+        /// The set of available audio components on the system has changed.
         case componentRegistrationsChanged
+        /// A specific audio component instance was invalidated (e.g., crashed).
         case componentInvalidated(AudioComponentDescription)
     }
 
+    /// Closure invoked when an observation event occurs.
     public var eventHandler: (@Sendable (Event) -> Void)?
 
     var notificationTask: Task<Void, Error>?
 
     var isObserving = false
 
+    /// Creates a new cache observation instance.
     public init() {}
 
+    /// Begins observing system notifications for component registration and invalidation changes.
     public func start() {
         guard !isObserving else { return }
 
@@ -41,6 +48,7 @@ public final class AudioUnitCacheObservation {
         isObserving = true
     }
 
+    /// Stops observing system notifications and removes all registered observers.
     public func stop() {
         guard isObserving else { return }
 

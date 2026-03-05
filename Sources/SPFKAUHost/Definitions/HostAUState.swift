@@ -12,11 +12,19 @@ import SwiftExtensions
 public final class HostAUState {
     public init() {}
 
+    /// Whether the host state blocks should provide data to Audio Units.
     public var isEnabled: Bool = true
 
+    /// The musical context (tempo, time signature, beat position) to provide to hosted AUs.
     public var musicalContext = HostMusicalContext()
+
+    /// The transport state (flags, sample position, cycle boundaries) to provide to hosted AUs.
     public var transportState = HostTransportState()
 
+    /// A block that provides the current ``musicalContext`` values to an `AUAudioUnit`.
+    ///
+    /// Assign this to `AUAudioUnit.musicalContextBlock`. Because `HostAUState` is a reference
+    /// type, the block always reads the latest values from ``musicalContext``.
     public var musicalContextBlock: AUHostMusicalContextBlock {
         /**  @typedef    AUHostMusicalContextBlock
              @brief        Block by which hosts provide musical tempo, time signature, and beat position.
@@ -50,6 +58,10 @@ public final class HostAUState {
         }
     }
 
+    /// A block that provides the current ``transportState`` values to an `AUAudioUnit`.
+    ///
+    /// Assign this to `AUAudioUnit.transportStateBlock`. Because `HostAUState` is a reference
+    /// type, the block always reads the latest values from ``transportState``.
     public var transportStateBlock: AUHostTransportStateBlock {
         /**  @typedef    AUHostTransportStateBlock
              @brief        Block by which hosts provide information about their transport state.

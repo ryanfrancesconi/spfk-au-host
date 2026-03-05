@@ -101,6 +101,7 @@ public struct S_AVAudioUnitComponent: Equatable, Sendable {
      */
     public let hasCustomView: Bool
 
+    /// Creates a sendable snapshot by copying properties from the given `AVAudioUnitComponent`.
     public init(avAudioUnitComponent auc: AVAudioUnitComponent) {
         self = S_AVAudioUnitComponent(
             name: auc.name,
@@ -121,6 +122,7 @@ public struct S_AVAudioUnitComponent: Equatable, Sendable {
         )
     }
 
+    /// Memberwise initializer for all audio component properties.
     public init(
         name: String,
         audioComponentDescription: AudioComponentDescription,

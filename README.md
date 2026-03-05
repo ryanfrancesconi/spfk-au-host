@@ -109,13 +109,16 @@ if cacheManager.validationIsNeeded {
 ### Host Musical Context
 
 ```swift
-var hostState = HostAUState()
+let hostState = HostAUState()
 hostState.musicalContext.currentTempo = 120
 hostState.musicalContext.timeSignatureNumerator = 4
 hostState.musicalContext.timeSignatureDenominator = 4
 
 // Provide to Audio Units via their blocks
 await chainData.update(hostAUState: hostState)
+
+// Mutations are reflected live — no need to reassign blocks
+hostState.musicalContext.currentTempo = 140
 ```
 
 ### Manufacturer Collection for Menus

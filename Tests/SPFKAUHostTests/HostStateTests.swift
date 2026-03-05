@@ -1,4 +1,5 @@
 import AudioToolbox
+import AVFoundation
 import Foundation
 import Testing
 
@@ -68,7 +69,7 @@ struct HostAUStateTests {
     }
 
     @Test func musicalContextBlockReturnsTrueAndSetsValues() {
-        var state = HostAUState()
+        let state = HostAUState()
         state.musicalContext.currentTempo = 100
         state.musicalContext.timeSignatureNumerator = 6
         state.musicalContext.timeSignatureDenominator = 8
@@ -105,7 +106,7 @@ struct HostAUStateTests {
     }
 
     @Test func transportStateBlockReturnsTrueAndSetsValues() {
-        var state = HostAUState()
+        let state = HostAUState()
         state.transportState.currentSamplePosition = 88200
         state.transportState.cycleStartBeatPosition = 1.0
         state.transportState.cycleEndBeatPosition = 9.0
@@ -134,9 +135,169 @@ struct HostAUStateTests {
     }
 
     @Test func isEnabledMutability() {
-        var state = HostAUState()
+        let state = HostAUState()
         #expect(state.isEnabled == true)
         state.isEnabled = false
         #expect(state.isEnabled == false)
+    }
+
+    // MARK: - Live mutation tests
+
+    /// Verify that mutating musicalContext after obtaining the block
+    /// is reflected when the block is called (reference semantics)
+    @Test func musicalContextBlockReflectsMutationsAfterCreation() {
+        let state = HostAUState()
+        let block = state.musicalContextBlock
+
+        // Mutate after block was obtained
+        state.musicalContext.currentTempo = 200
+        state.musicalContext.timeSignatureNumerator = 7
+        state.musicalContext.timeSignatureDenominator = 16
+        state.musicalContext.currentBeatPosition = 12.75
+        state.musicalContext.sampleOffsetToNextBeat = 1024
+        state.musicalContext.currentMeasureDownbeatPosition = 10.0
+
+        var tempo: Double = 0
+        var numerator: Double = 0
+        var denominator: Int = 0
+        var beatPos: Double = 0
+        var sampleOffset: Int = 0
+        var downbeatPos: Double = 0
+
+        let result = block(&tempo, &numerator, &denominator, &beatPos, &sampleOffset, &downbeatPos)
+
+        #expect(result == true)
+        #expect(tempo == 200)
+        #expect(numerator == 7)
+        #expect(denominator == 16)
+        #expect(beatPos == 12.75)
+        #expect(sampleOffset == 1024)
+        #expect(downbeatPos == 10.0)
+    }
+
+    /// Verify that mutating transportState after obtaining the block
+    /// is reflected when the block is called (reference semantics)
+    @Test func transportStateBlockReflectsMutationsAfterCreation() {
+        let state = HostAUState()
+        let block = state.transportStateBlock
+
+        // Mutate after block was obtained
+        state.transportState.currentSamplePosition = 176400
+        state.transportState.cycleStartBeatPosition = 4.0
+        state.transportState.cycleEndBeatPosition = 16.0
+        state.transportState.flags = [.changed, .moving]
+
+        var flags = AUHostTransportStateFlags()
+        var samplePos: Double = 0
+        var cycleStart: Double = 0
+        var cycleEnd: Double = 0
+
+        let result = block(&flags, &samplePos, &cycleStart, &cycleEnd)
+
+        #expect(result == true)
+        #expect(samplePos == 176400)
+        #expect(cycleStart == 4.0)
+        #expect(cycleEnd == 16.0)
+        #expect(flags.contains(.changed))
+        #expect(flags.contains(.moving))
+    }
+
+    /// Verify that obtaining the block multiple times from the same instance
+    /// and mutating in between always reflects the latest state
+    @Test func multipleBlockReadsReflectLatestState() {
+        let state = HostAUState()
+
+        // Get first block
+        let block1 = state.musicalContextBlock
+
+        state.musicalContext.currentTempo = 90
+
+        // Get second block
+        let block2 = state.musicalContextBlock
+
+        state.musicalContext.currentTempo = 160
+
+        // Both blocks should read 160 (the current value)
+        var tempo1: Double = 0
+        var tempo2: Double = 0
+        _ = block1(&tempo1, nil, nil, nil, nil, nil)
+        _ = block2(&tempo2, nil, nil, nil, nil, nil)
+
+        #expect(tempo1 == 160)
+        #expect(tempo2 == 160)
+    }
+}
+
+// MARK: - HostAUState with AUAudioUnit
+
+struct HostAUStateAudioUnitTests {
+    static let auDelayDesc = AudioComponentDescription(
+        componentType: kAudioUnitType_Effect,
+        componentSubType: 0x64656C79, // 'dely' - AUDelay
+        componentManufacturer: kAudioUnitManufacturer_Apple,
+        componentFlags: 0,
+        componentFlagsMask: 0
+    )
+
+    /// Verify that host state blocks assigned to a real AUAudioUnit
+    /// reflect mutations to the HostAUState instance
+    @Test func auAudioUnitReceivesLiveHostState() async throws {
+        let state = HostAUState()
+        state.musicalContext.currentTempo = 120
+
+        // Create a real AU
+        let avAudioUnit = try await AVAudioUnit.instantiate(
+            with: Self.auDelayDesc,
+            options: []
+        )
+
+        let au = avAudioUnit.auAudioUnit
+
+        // Assign blocks from host state
+        au.musicalContextBlock = state.musicalContextBlock
+        au.transportStateBlock = state.transportStateBlock
+
+        // Mutate the state after assignment
+        state.musicalContext.currentTempo = 145
+        state.transportState.currentSamplePosition = 44100
+
+        // Read back through the AU's blocks
+        var tempo: Double = 0
+        let contextResult = au.musicalContextBlock?(&tempo, nil, nil, nil, nil, nil)
+
+        #expect(contextResult == true)
+        #expect(tempo == 145)
+
+        var samplePos: Double = 0
+        let transportResult = au.transportStateBlock?(nil, &samplePos, nil, nil)
+
+        #expect(transportResult == true)
+        #expect(samplePos == 44100)
+    }
+
+    /// Verify that multiple AUAudioUnits sharing the same HostAUState
+    /// all see the same live values
+    @Test func multipleAudioUnitsShareLiveState() async throws {
+        let state = HostAUState()
+        state.musicalContext.currentTempo = 120
+
+        let au1 = try await AVAudioUnit.instantiate(with: Self.auDelayDesc, options: [])
+        let au2 = try await AVAudioUnit.instantiate(with: Self.auDelayDesc, options: [])
+
+        // Assign blocks from the same HostAUState
+        au1.auAudioUnit.musicalContextBlock = state.musicalContextBlock
+        au2.auAudioUnit.musicalContextBlock = state.musicalContextBlock
+
+        // Mutate the shared state
+        state.musicalContext.currentTempo = 180
+
+        var tempo1: Double = 0
+        var tempo2: Double = 0
+
+        _ = au1.auAudioUnit.musicalContextBlock?(&tempo1, nil, nil, nil, nil, nil)
+        _ = au2.auAudioUnit.musicalContextBlock?(&tempo2, nil, nil, nil, nil, nil)
+
+        #expect(tempo1 == 180)
+        #expect(tempo2 == 180)
     }
 }

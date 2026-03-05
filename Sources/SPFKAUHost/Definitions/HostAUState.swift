@@ -5,12 +5,11 @@ import SwiftExtensions
 
 /// Provides musical context and transport state blocks to hosted Audio Units.
 ///
-/// Because `HostAUState` is a value type, the blocks returned by ``musicalContextBlock``
-/// and ``transportStateBlock`` capture a **snapshot** of the current state at the time
-/// they are read. If you mutate `musicalContext` or `transportState` after obtaining
-/// the block, the hosted AU will not see those changes. Re-read the block properties
-/// and reassign them to the AU whenever the state changes.
-public struct HostAUState {
+/// `HostAUState` is a reference type so that the blocks returned by ``musicalContextBlock``
+/// and ``transportStateBlock`` always read the **current** values of ``musicalContext``
+/// and ``transportState``. Mutating those properties after the blocks have been assigned
+/// to an `AUAudioUnit` will be reflected on the next render cycle without reassignment.
+public final class HostAUState {
     public init() {}
 
     public var isEnabled: Bool = true
@@ -19,8 +18,6 @@ public struct HostAUState {
     public var transportState = HostTransportState()
 
     public var musicalContextBlock: AUHostMusicalContextBlock {
-        // Log.debug("musicalContextBlock requested")
-
         /**  @typedef    AUHostMusicalContextBlock
              @brief        Block by which hosts provide musical tempo, time signature, and beat position.
              @param    currentTempo
@@ -39,13 +36,9 @@ public struct HostAUState {
              @return
                  YES for success.
          */
-        func block(currentTempo: UnsafeMutablePointer<Double>?,
-                   timeSignatureNumerator: UnsafeMutablePointer<Double>?,
-                   timeSignatureDenominator: UnsafeMutablePointer<Int>?,
-                   currentBeatPosition: UnsafeMutablePointer<Double>?,
-                   sampleOffsetToNextBeat: UnsafeMutablePointer<Int>?,
-                   currentMeasureDownbeatPosition: UnsafeMutablePointer<Double>?) -> Bool
-        {
+        { [self] currentTempo, timeSignatureNumerator, timeSignatureDenominator,
+            currentBeatPosition, sampleOffsetToNextBeat, currentMeasureDownbeatPosition in
+
             currentTempo?.pointee = musicalContext.currentTempo
             timeSignatureNumerator?.pointee = musicalContext.timeSignatureNumerator
             timeSignatureDenominator?.pointee = musicalContext.timeSignatureDenominator
@@ -55,12 +48,9 @@ public struct HostAUState {
 
             return true
         }
-        return block
     }
 
     public var transportStateBlock: AUHostTransportStateBlock {
-        // Log.debug("transportStateBlock requested")
-
         /**  @typedef    AUHostTransportStateBlock
              @brief        Block by which hosts provide information about their transport state.
              @param    transportStateFlags
@@ -80,17 +70,14 @@ public struct HostAUState {
                  Any of the provided parameters may be null to indicate that the audio unit is not interested
                  in that particular piece of information.
          */
-        func block(transportStateFlags: UnsafeMutablePointer<AUHostTransportStateFlags>?,
-                   currentSamplePosition: UnsafeMutablePointer<Double>?,
-                   cycleStartBeatPosition: UnsafeMutablePointer<Double>?,
-                   cycleEndBeatPosition: UnsafeMutablePointer<Double>?) -> Bool
-        {
+        { [self] transportStateFlags, currentSamplePosition,
+            cycleStartBeatPosition, cycleEndBeatPosition in
+
             transportStateFlags?.pointee = transportState.flags
             currentSamplePosition?.pointee = transportState.currentSamplePosition
             cycleStartBeatPosition?.pointee = transportState.cycleStartBeatPosition
             cycleEndBeatPosition?.pointee = transportState.cycleEndBeatPosition
             return true
         }
-        return block
     }
 }

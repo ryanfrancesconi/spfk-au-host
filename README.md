@@ -9,14 +9,14 @@ Audio Unit (v3) hosting, validation, caching, and effects chain management for m
 - **Effects Chain** — Actor-based `AudioUnitChain` for loading, connecting, bypassing, reordering, and removing Audio Units in a serial chain between input and output nodes
 - **Component Caching** — XML-based cache system (`AudioUnitCacheManager`) for persisting validated Audio Unit component state across sessions
 - **Component Validation** — Multi-strategy validation pipeline using `AudioComponentValidate`, `AudioComponentValidateWithResults` (macOS 13+/iOS 16+), and external `auval`/`auvaltool` fallback (macOS only)
-- **Preset Management** — Factory preset loading via C AudioToolbox APIs and user preset discovery from the `~/Library/Audio/Presets` hierarchy (macOS only)
+- **Preset Management** — Factory preset loading via AudioToolbox APIs and user preset discovery from the `~/Library/Audio/Presets` hierarchy (macOS only)
 - **Full State Persistence** — Plist-based serialization and restoration of Audio Unit full state dictionaries for project save/load
 - **Host Musical Context** — Tempo, time signature, beat position, and transport state blocks for AUs that need host timing information
 - **Manufacturer Grouping** — `AudioUnitManufacturerCollection` for organizing available components into manufacturer-grouped hierarchies for menu display
 - **Sendable Component Wrapper** — `S_AVAudioUnitComponent` copies all relevant properties from `AVAudioUnitComponent` into a `Sendable` struct for safe cross-isolation use
 - **Engine Abstraction** — `AudioEngineConnection` protocol decouples chain connection logic from `AVAudioEngine`, allowing the host to provide its own node attachment strategy
 - **Component Observation** — Real-time notifications for Audio Unit registration changes and component invalidation (plugin crash detection)
-- **C/C++ Companion Target** — `SPFKAUHostC` provides Objective-C bridges for `AudioUnitGetProperty`-based parameter notification and factory preset selection
+
 
 ## Architecture
 
@@ -45,6 +45,7 @@ SPFKAUHost
   |-- Definitions
   |   |-- AudioUnitManufacturerCollection  Manufacturer-grouped component hierarchy
   |   |-- AudioUnitPresets           Factory and user preset loading and full state I/O
+  |   |-- AudioUnitStateNotifier    Parameter change notification via AudioToolbox
   |   |-- HostAUState               Musical context + transport state block provider
   |   |-- HostMusicalContext         Tempo, time signature, beat position
   |   |-- HostTransportState         Transport flags, sample position, cycle boundaries
@@ -57,10 +58,6 @@ SPFKAUHost
   |
   |-- Tests
       |-- TestAudioUnitContent       Mock delegate for unit testing without AVAudioEngine
-
-SPFKAUHostC (Objective-C/C)
-  |-- AudioUnitFactoryPresets        Factory preset loading via AudioToolbox C API
-  |-- AudioUnitStateC                Parameter change notification via AUEventListenerNotify
 ```
 
 ## Usage
@@ -159,7 +156,6 @@ struct MyEngine: AudioEngineConnection {
 
 | Package | Description |
 |---|---|
-| [SPFKBase](https://github.com/ryanfrancesconi/spfk-base) | Logging, extensions, and base utilities |
 | [SPFKUtils](https://github.com/ryanfrancesconi/spfk-utils) | Plist utilities, process handling, and audio extensions |
 | [SPFKTesting](https://github.com/ryanfrancesconi/spfk-testing) | Test case base classes (test target only) |
 

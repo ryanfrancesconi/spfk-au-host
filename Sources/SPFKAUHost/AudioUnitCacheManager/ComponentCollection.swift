@@ -1,7 +1,7 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
+import AudioToolbox
 import SPFKAudioBase
-import SPFKAUHostC
 import SPFKUtils
 
 /// A collection of Audio Unit component validation results with filtering and update capabilities.

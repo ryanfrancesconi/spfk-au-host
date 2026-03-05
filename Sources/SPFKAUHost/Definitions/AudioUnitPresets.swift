@@ -1,15 +1,13 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
 import AEXML
+import AudioToolbox
 import AVFoundation
 import Foundation
-import SPFKAUHostC
 import SPFKUtils
 
-// TODO: review apis added after this class was written for preset management (if os available)
-
 /// Manages loading and locating audio unit presets, including user presets on disk.
-public class AudioUnitPresets: AudioUnitFactoryPresets {
+public enum AudioUnitPresets {
     #if os(macOS)
     /// File system locations for user audio unit presets.
     public enum Locations {
@@ -115,7 +113,7 @@ public class AudioUnitPresets: AudioUnitFactoryPresets {
     public static func loadPreset(for avAudioUnit: AVAudioUnit, fullState: [String: Any]) {
         avAudioUnit.auAudioUnit.fullState = fullState
 
-        let status = AudioUnitStateC.notifyAudioUnitListener(avAudioUnit.audioUnit)
+        let status = AudioUnitStateNotifier.notifyListeners(of: avAudioUnit.audioUnit)
 
         guard noErr == status else {
             Log.error("notifyAudioUnitListener returned error:", status.fourCC)

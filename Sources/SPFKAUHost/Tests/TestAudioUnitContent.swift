@@ -62,7 +62,7 @@ public struct TestAudioUnitContent {
 }
 
 extension TestAudioUnitContent: AudioUnitChainDelegate {
-    public func audioUnitChain(_ audioUnitChain: AudioUnitChain, event: AudioUnitChainEvent) {
+    public func audioUnitChain(_ audioUnitChain: AudioUnitChain, event: AudioUnitChainEvent) async {
         Log.debug(event)
     }
 

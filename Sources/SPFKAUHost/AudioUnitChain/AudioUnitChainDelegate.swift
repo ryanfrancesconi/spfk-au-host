@@ -2,5 +2,5 @@
 
 /// Delegate protocol for receiving events and managing connections within an `AudioUnitChain`.
 public protocol AudioUnitChainDelegate: AudioEngineConnection, AudioUnitAvailability {
-    func audioUnitChain(_ audioUnitChain: AudioUnitChain, event: AudioUnitChainEvent)
+    func audioUnitChain(_ audioUnitChain: AudioUnitChain, event: AudioUnitChainEvent) async
 }

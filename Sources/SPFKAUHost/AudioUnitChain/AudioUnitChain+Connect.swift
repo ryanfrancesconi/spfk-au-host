@@ -17,7 +17,7 @@ extension AudioUnitChain {
     /// Removes the effect at the specified index from the chain.
     public func removeEffect(at index: Int, reconnectChain: Bool = true, sendEvent: Bool = true) async throws {
         if sendEvent {
-            delegate?.audioUnitChain(self, event: .willRemove(index: index))
+            await delegate?.audioUnitChain(self, event: .willRemove(index: index))
         }
 
         try await data.remove(index: index)
@@ -27,7 +27,7 @@ extension AudioUnitChain {
         }
 
         if sendEvent {
-            delegate?.audioUnitChain(self, event: .didRemove(index: index))
+            await delegate?.audioUnitChain(self, event: .didRemove(index: index))
         }
     }
 
@@ -42,7 +42,7 @@ extension AudioUnitChain {
 
     /// Sets the bypass state of the effect at the specified index.
     public func bypassEffect(at index: Int, state: Bool, reconnect: Bool) async throws {
-        delegate?.audioUnitChain(self, event: .willBypass(index: index, state: state))
+        await delegate?.audioUnitChain(self, event: .willBypass(index: index, state: state))
 
         try await state ?
             data.bypass(index: index) :
@@ -52,14 +52,14 @@ extension AudioUnitChain {
             try await connect()
         }
 
-        delegate?.audioUnitChain(self, event: .didBypass(index: index, state: state))
+        await delegate?.audioUnitChain(self, event: .didBypass(index: index, state: state))
     }
 
     /// Moves an effect from one position to another in the chain and reconnects.
     public func moveEffect(from startIndex: Int, to endIndex: Int) async throws {
         try await data.moveEffect(from: startIndex, to: endIndex)
         try await connect()
-        delegate?.audioUnitChain(self, event: .effectMoved(from: startIndex, to: endIndex))
+        await delegate?.audioUnitChain(self, event: .effectMoved(from: startIndex, to: endIndex))
     }
 
     /// Main effects chain connection method

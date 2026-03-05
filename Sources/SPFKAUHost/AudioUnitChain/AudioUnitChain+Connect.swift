@@ -6,7 +6,7 @@ import SPFKBase
 
 extension AudioUnitChain {
     /// Removes all effects from the effectsChain and detach Audio Units from the engine
-    public func removeEffects(reconnectChain: Bool = true, sendEvent: Bool = true) async throws {
+    public func removeEffects(reconnectChain: Bool = true) async throws {
         try await data.removeAll()
 
         if reconnectChain {

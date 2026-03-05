@@ -22,7 +22,7 @@ struct S_AVAudioUnitComponentTests {
             return
         }
 
-        let sendable = S_AVAudioUnitComponent(avAudioUnitCompoment: component)
+        let sendable = S_AVAudioUnitComponent(avAudioUnitComponent: component)
 
         #expect(sendable.name == component.name)
         #expect(sendable.typeName == component.typeName)
@@ -43,8 +43,8 @@ struct S_AVAudioUnitComponentTests {
             return
         }
 
-        let a = S_AVAudioUnitComponent(avAudioUnitCompoment: component)
-        let b = S_AVAudioUnitComponent(avAudioUnitCompoment: component)
+        let a = S_AVAudioUnitComponent(avAudioUnitComponent: component)
+        let b = S_AVAudioUnitComponent(avAudioUnitComponent: component)
 
         #expect(a == b)
     }
@@ -67,8 +67,8 @@ struct S_AVAudioUnitComponentTests {
             return
         }
 
-        let a = S_AVAudioUnitComponent(avAudioUnitCompoment: delayComponent)
-        let b = S_AVAudioUnitComponent(avAudioUnitCompoment: reverbComponent)
+        let a = S_AVAudioUnitComponent(avAudioUnitComponent: delayComponent)
+        let b = S_AVAudioUnitComponent(avAudioUnitComponent: reverbComponent)
 
         #expect(a != b)
     }
@@ -80,7 +80,7 @@ struct S_AVAudioUnitComponentTests {
             return
         }
 
-        let sendable = S_AVAudioUnitComponent(avAudioUnitCompoment: component)
+        let sendable = S_AVAudioUnitComponent(avAudioUnitComponent: component)
 
         #expect(sendable.audioComponentDescription.componentType == Self.testDesc.componentType)
         #expect(sendable.audioComponentDescription.componentSubType == Self.testDesc.componentSubType)

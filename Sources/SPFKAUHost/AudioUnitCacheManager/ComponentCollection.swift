@@ -83,7 +83,7 @@ public struct ComponentCollection: Sendable {
             let monoEffects = unavailableEffects.filter { $0.supportsMono && !$0.supportsStereo }
 
             if monoEffects.isNotEmpty {
-                text += flatten(collection: monoEffects, title: "Currently only supporing stereo Audio Units. These are mono:")
+                text += flatten(collection: monoEffects, title: "Currently only supporting stereo Audio Units. These are mono:")
                 text += "\n\n"
             }
         }

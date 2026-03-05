@@ -57,7 +57,6 @@ extension AudioUnitCacheManager {
         let manufacturer = audioComponentDescription.componentManufacturer
 
         return manufacturer != kAudioUnitManufacturer_Apple &&
-            manufacturer != kAudioUnitSubType_SystemOutput &&
             manufacturer != kAudioUnitManufacturer_Spongefork
     }
 

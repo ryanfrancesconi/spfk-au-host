@@ -101,7 +101,7 @@ public struct S_AVAudioUnitComponent: Equatable, Sendable {
      */
     public let hasCustomView: Bool
 
-    public init(avAudioUnitCompoment auc: AVAudioUnitComponent) {
+    public init(avAudioUnitComponent auc: AVAudioUnitComponent) {
         self = S_AVAudioUnitComponent(
             name: auc.name,
             audioComponentDescription: auc.audioComponentDescription,

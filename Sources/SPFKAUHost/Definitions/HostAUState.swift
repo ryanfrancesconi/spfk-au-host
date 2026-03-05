@@ -3,6 +3,13 @@
 import AudioToolbox
 import SwiftExtensions
 
+/// Provides musical context and transport state blocks to hosted Audio Units.
+///
+/// Because `HostAUState` is a value type, the blocks returned by ``musicalContextBlock``
+/// and ``transportStateBlock`` capture a **snapshot** of the current state at the time
+/// they are read. If you mutate `musicalContext` or `transportState` after obtaining
+/// the block, the hosted AU will not see those changes. Re-read the block properties
+/// and reassign them to the AU whenever the state changes.
 public struct HostAUState {
     public init() {}
 

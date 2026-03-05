@@ -69,7 +69,7 @@ extension AudioUnitManufacturerCollection {
         }
 
         let sendables = components.map {
-            S_AVAudioUnitComponent(avAudioUnitCompoment: $0)
+            S_AVAudioUnitComponent(avAudioUnitComponent: $0)
         }
 
         return sendables.sorted {

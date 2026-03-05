@@ -25,8 +25,8 @@
         return status;
     }
 
-    int index = 0;
     long count = CFArrayGetCount(array);
+    int index = -1;
 
     // find the index of the preset
     for (int i = 0; i < count; i++) {
@@ -38,25 +38,28 @@
         }
     }
 
-    if (index < count) {
-        AUPreset *preset = (AUPreset *)CFArrayGetValueAtIndex(array, index);
+    if (index < 0) {
+        CFRelease(array);
+        return kAudioUnitErr_InvalidPropertyValue;
+    }
 
-        status = AudioUnitSetProperty(
-            audioUnit,
-            kAudioUnitProperty_PresentPreset,
-            kAudioUnitScope_Global,
-            0,
-            preset,
-            sizeof(AUPreset));
+    AUPreset *preset = (AUPreset *)CFArrayGetValueAtIndex(array, index);
 
-        if (status == noErr) {
-            AudioUnitParameter aup;
-            aup.mAudioUnit = audioUnit;
-            aup.mParameterID = kAUParameterListener_AnyParameter;
-            aup.mScope = kAudioUnitScope_Global;
-            aup.mElement = 0;
-            AUParameterListenerNotify(NULL, NULL, &aup);
-        }
+    status = AudioUnitSetProperty(
+        audioUnit,
+        kAudioUnitProperty_PresentPreset,
+        kAudioUnitScope_Global,
+        0,
+        preset,
+        sizeof(AUPreset));
+
+    if (status == noErr) {
+        AudioUnitParameter aup;
+        aup.mAudioUnit = audioUnit;
+        aup.mParameterID = kAUParameterListener_AnyParameter;
+        aup.mScope = kAudioUnitScope_Global;
+        aup.mElement = 0;
+        AUParameterListenerNotify(NULL, NULL, &aup);
     }
 
     CFRelease(array);

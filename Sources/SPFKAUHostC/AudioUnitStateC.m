@@ -33,6 +33,7 @@
                                   &parameterListSize);
 
     if (noErr != status) {
+        free(parameterIDs);
         return status;
     }
 

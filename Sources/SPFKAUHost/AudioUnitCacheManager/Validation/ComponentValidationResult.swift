@@ -25,19 +25,26 @@ public struct ComponentValidationResult: Sendable {
 
     /// Whether this component is an effect or music device and supports stereo.
     public var isFormatCompatible: Bool {
-        (audioComponentDescription.isEffect || audioComponentDescription.isMusicDevice)
-            && component?.supportsStereo == true
+        let isEffect = (audioComponentDescription.isEffect || audioComponentDescription.isMusicDevice)
+
+        #if os(macOS)
+            return isEffect && component?.supportsStereo == true
+        #else
+            return isEffect
+        #endif
     }
 
-    /// Whether the underlying component supports mono channel layout.
-    public var supportsMono: Bool {
-        component?.supportsMono == true
-    }
+    #if os(macOS)
+        /// Whether the underlying component supports mono channel layout.
+        public var supportsMono: Bool {
+            component?.supportsMono == true
+        }
 
-    /// Whether the underlying component supports stereo channel layout.
-    public var supportsStereo: Bool {
-        component?.supportsStereo == true
-    }
+        /// Whether the underlying component supports stereo channel layout.
+        public var supportsStereo: Bool {
+            component?.supportsStereo == true
+        }
+    #endif
 
     /// A textual description including the component's manufacturer, name, type, and validation command.
     public var description: String {

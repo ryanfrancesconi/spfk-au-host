@@ -79,21 +79,23 @@ public struct ComponentCollection: Sendable {
             }
         }
 
-        if unavailableEffects.isNotEmpty {
-            let incompatibleEffects = unavailableEffects.filter(\.supportsStereo)
+        #if macOS
+            if unavailableEffects.isNotEmpty {
+                let incompatibleEffects = unavailableEffects.filter(\.supportsStereo)
 
-            if incompatibleEffects.isNotEmpty {
-                text += flatten(collection: incompatibleEffects, title: "These Audio Units aren't supported:")
-                text += "\n\n"
+                if incompatibleEffects.isNotEmpty {
+                    text += flatten(collection: incompatibleEffects, title: "These Audio Units aren't supported:")
+                    text += "\n\n"
+                }
+
+                let monoEffects = unavailableEffects.filter { $0.supportsMono && !$0.supportsStereo }
+
+                if monoEffects.isNotEmpty {
+                    text += flatten(collection: monoEffects, title: "Currently only supporting stereo Audio Units. These are mono:")
+                    text += "\n\n"
+                }
             }
-
-            let monoEffects = unavailableEffects.filter { $0.supportsMono && !$0.supportsStereo }
-
-            if monoEffects.isNotEmpty {
-                text += flatten(collection: monoEffects, title: "Currently only supporting stereo Audio Units. These are mono:")
-                text += "\n\n"
-            }
-        }
+        #endif
 
         return text
     }

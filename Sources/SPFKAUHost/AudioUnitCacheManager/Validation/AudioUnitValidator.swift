@@ -1,11 +1,8 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
-import AVFoundation
 import AudioToolbox
-
-#if os(macOS)
+import AVFoundation
 import SPFKUtils
-#endif
 
 /// Validates Audio Unit components using system APIs and optional external tools.
 public class AudioUnitValidator {
@@ -21,7 +18,7 @@ public class AudioUnitValidator {
         [
             kAudioComponentValidationParameter_LoadOutOfProcess: 1, // requires that the AU be able to load out of process
             kAudioComponentValidationParameter_TimeOut: 15, // this seems to work
-                // kAudioComponentValidationParameter_ForceValidation: 1
+            // kAudioComponentValidationParameter_ForceValidation: 1
         ] as CFDictionary
     }
 
@@ -42,9 +39,9 @@ public class AudioUnitValidator {
         }
 
         #if os(macOS)
-        return validateExternal(component: component)
+            return validateExternal(component: component)
         #else
-        return result
+            return result
         #endif
     }
 
@@ -83,80 +80,81 @@ public class AudioUnitValidator {
     }
 
     #if os(macOS)
-    /// The URL to the `auvaltool` or `auval` command-line utility, or nil if neither is found.
-    public static var auval: URL? {
-        let cmd1 = URL(fileURLWithPath: "/usr/bin/auvaltool")
+        /// The URL to the `auvaltool` or `auval` command-line utility, or nil if neither is found.
+        public static var auval: URL? {
+            let cmd1 = URL(fileURLWithPath: "/usr/bin/auvaltool")
 
-        if cmd1.exists {
-            return cmd1
-        }
-
-        let cmd2 = URL(fileURLWithPath: "/usr/bin/auval")
-
-        if cmd2.exists {
-            return cmd2
-        }
-
-        // neither tool found
-        return nil
-    }
-
-    static func validateExternal(component: AVAudioUnitComponent) -> ValidationResult {
-        guard let cmd = auval else {
-            // the auval tool is missing on this computer
-            return ValidationResult(result: .unknown)
-        }
-
-        let desc = component.audioComponentDescription
-
-        let args = [
-            "-v",
-            desc.componentType.fourCC,
-            desc.componentSubType.fourCC,
-            desc.componentManufacturer.fourCC,
-        ].compactMap(\.self)
-
-        Log.default(
-            "*AU validateExternal \(component.name):", cmd.lastPathComponent + " " + args.joined(separator: " "))
-
-        let process = ProcessHandler(url: cmd, args: args, qos: .default)
-
-        do {
-            let out = try process.run()
-
-            let result = parse(result: out)
-
-            if result != .passed {
-                Log.error("*AU validateExternal", component.name, "result:", result.description)
-
-            } else {
-                Log.default("*AU validateExternal", component.name, "result:", result.description)
+            if cmd1.exists {
+                return cmd1
             }
 
-            return ValidationResult(
-                result: result,
-                output: out,
+            let cmd2 = URL(fileURLWithPath: "/usr/bin/auval")
+
+            if cmd2.exists {
+                return cmd2
+            }
+
+            // neither tool found
+            return nil
+        }
+
+        static func validateExternal(component: AVAudioUnitComponent) -> ValidationResult {
+            guard let cmd = auval else {
+                // the auval tool is missing on this computer
+                return ValidationResult(result: .unknown)
+            }
+
+            let desc = component.audioComponentDescription
+
+            let args = [
+                "-v",
+                desc.componentType.fourCC,
+                desc.componentSubType.fourCC,
+                desc.componentManufacturer.fourCC,
+            ].compactMap(\.self)
+
+            Log.default(
+                "*AU validateExternal \(component.name):", cmd.lastPathComponent + " " + args.joined(separator: " ")
             )
 
-        } catch {
-            return ValidationResult(result: .failed, output: error.localizedDescription)
+            let process = ProcessHandler(url: cmd, args: args, qos: .default)
+
+            do {
+                let out = try process.run()
+
+                let result = parse(result: out)
+
+                if result != .passed {
+                    Log.error("*AU validateExternal", component.name, "result:", result.description)
+
+                } else {
+                    Log.default("*AU validateExternal", component.name, "result:", result.description)
+                }
+
+                return ValidationResult(
+                    result: result,
+                    output: out,
+                )
+
+            } catch {
+                return ValidationResult(result: .failed, output: error.localizedDescription)
+            }
         }
-    }
 
-    private static func parse(result: String) -> AudioComponentValidationResult {
-        if result.contains("AU VALIDATION SUCCEEDED") {
-            .passed
+        private static func parse(result: String) -> AudioComponentValidationResult {
+            if result.contains("AU VALIDATION SUCCEEDED") {
+                .passed
 
-        } else if result.contains("FATAL ERROR: OpenAComponent") {
-            .unauthorizedError_Open
+            } else if result.contains("FATAL ERROR: OpenAComponent") {
+                .unauthorizedError_Open
 
-        } else if result.contains("FATAL ERROR: Initialize") {
-            .unauthorizedError_Init
+            } else if result.contains("FATAL ERROR: Initialize") {
+                .unauthorizedError_Init
 
-        } else {
-            .failed
+            } else {
+                .failed
+            }
         }
-    }
     #endif
 }
 

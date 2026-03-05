@@ -20,16 +20,23 @@ extension AudioUnitChain {
             return nil
         }
 
-        if let value = try? await Self.createEffect(
+        if let value = try? await createEffect(
             componentDescription: componentDescription,
             options: .loadOutOfProcess
         ) {
             return value
         }
 
+        #if macOS
+            let options: AudioComponentInstantiationOptions = .loadInProcess
+
+        #else
+            let options: AudioComponentInstantiationOptions = []
+        #endif
+
         if let value = try await Self.createEffect(
             componentDescription: componentDescription,
-            options: .loadInProcess
+            options: options
         ) {
             return value
         }

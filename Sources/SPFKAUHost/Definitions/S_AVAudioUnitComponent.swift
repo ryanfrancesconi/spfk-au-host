@@ -101,26 +101,49 @@ public struct S_AVAudioUnitComponent: Equatable, Sendable {
      */
     public let hasCustomView: Bool
 
-    /// Creates a sendable snapshot by copying properties from the given `AVAudioUnitComponent`.
-    public init(avAudioUnitComponent auc: AVAudioUnitComponent) {
-        self = S_AVAudioUnitComponent(
-            name: auc.name,
-            audioComponentDescription: auc.audioComponentDescription,
-            typeName: auc.typeName,
-            localizedTypeName: auc.localizedTypeName,
-            manufacturerName: auc.manufacturerName,
-            version: auc.version,
-            versionString: auc.versionString,
-            availableArchitectures: auc.availableArchitectures,
-            isSandboxSafe: auc.isSandboxSafe,
-            hasMIDIInput: auc.hasMIDIInput,
-            hasMIDIOutput: auc.hasMIDIOutput,
-            userTagNames: auc.userTagNames,
-            allTagNames: auc.allTagNames,
-            iconURL: auc.iconURL,
-            hasCustomView: auc.hasCustomView
-        )
-    }
+    #if os(macOS)
+        /// Creates a sendable snapshot by copying properties from the given `AVAudioUnitComponent`.
+        public init(avAudioUnitComponent auc: AVAudioUnitComponent) {
+            self = S_AVAudioUnitComponent(
+                name: auc.name,
+                audioComponentDescription: auc.audioComponentDescription,
+                typeName: auc.typeName,
+                localizedTypeName: auc.localizedTypeName,
+                manufacturerName: auc.manufacturerName,
+                version: auc.version,
+                versionString: auc.versionString,
+                availableArchitectures: auc.availableArchitectures,
+                isSandboxSafe: auc.isSandboxSafe,
+                hasMIDIInput: auc.hasMIDIInput,
+                hasMIDIOutput: auc.hasMIDIOutput,
+                userTagNames: auc.userTagNames,
+                allTagNames: auc.allTagNames,
+                iconURL: auc.iconURL,
+                hasCustomView: auc.hasCustomView
+            )
+        }
+    #else
+        /// Creates a sendable snapshot by copying properties from the given `AVAudioUnitComponent`.
+        public init(avAudioUnitComponent auc: AVAudioUnitComponent) {
+            self = S_AVAudioUnitComponent(
+                name: auc.name,
+                audioComponentDescription: auc.audioComponentDescription,
+                typeName: auc.typeName,
+                localizedTypeName: auc.localizedTypeName,
+                manufacturerName: auc.manufacturerName,
+                version: auc.version,
+                versionString: auc.versionString,
+                availableArchitectures: [],
+                isSandboxSafe: auc.isSandboxSafe,
+                hasMIDIInput: auc.hasMIDIInput,
+                hasMIDIOutput: auc.hasMIDIOutput,
+                userTagNames: [],
+                allTagNames: auc.allTagNames,
+                iconURL: nil,
+                hasCustomView: false
+            )
+        }
+    #endif
 
     /// Memberwise initializer for all audio component properties.
     public init(

@@ -168,9 +168,8 @@ Most functionality is cross-platform. The following features are macOS-only:
 
 ## Requirements
 
-- macOS 12+ / iOS 15+
-- Swift 6.2+
-- Xcode 26+
+- **Platforms:** macOS 13+, iOS 16+
+- **Swift:** 6.2+
 
 ## About
 

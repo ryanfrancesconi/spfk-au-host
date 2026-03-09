@@ -8,7 +8,7 @@ import SwiftExtensions
 extension AudioUnitCacheManager {
     /// Whether the cached component count differs from the current system count, indicating a rescan is needed.
     public var validationIsNeeded: Bool {
-        AudioUnitCacheManager.compatibleComponents.count != cachedComponentCount
+        cachedCompatibleComponents().count != cachedComponentCount
     }
 
     private func cacheDocument() throws -> AEXMLDocument {
@@ -176,7 +176,7 @@ extension AudioUnitCacheManager {
 
         removeCache()
 
-        let componentCountOnDisk = AudioUnitCacheManager.compatibleComponents.count // Self.audioComponentCount
+        let componentCountOnDisk = cachedCompatibleComponents().count
 
         let effectsAttributes = ["cachedComponentCount": String(componentCountOnDisk)]
         let root = AEXMLElement(name: "effects", value: nil, attributes: effectsAttributes)

@@ -7,6 +7,6 @@ public enum AudioUnitCacheEvent: Sendable {
     case cacheUpdated
     case cacheLoaded(SystemComponentsResponse)
 
-    /// Name of AU being currently validated
-    case validating(name: String, index: Int, count: Int)
+    /// Progress update: name of the AU just validated, how many completed so far, total count
+    case validating(name: String, completed: Int, count: Int)
 }

@@ -1,6 +1,6 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
-import AudioToolbox
+@preconcurrency import AudioToolbox
 import AVFoundation
 import SPFKUtils
 
@@ -16,22 +16,54 @@ public class AudioUnitValidator {
 
     private static var validateParams: CFDictionary {
         [
-            kAudioComponentValidationParameter_LoadOutOfProcess: 1, // requires that the AU be able to load out of process
-            kAudioComponentValidationParameter_TimeOut: 15, // this seems to work
-            // kAudioComponentValidationParameter_ForceValidation: 1
+            kAudioComponentValidationParameter_LoadOutOfProcess: 1,
+            kAudioComponentValidationParameter_TimeOut: 15,
         ] as CFDictionary
     }
 
+    // MARK: - System Cache
+
+    /// Checks the system's cached validation result for a component.
+    /// Returns the cached result if available, nil otherwise.
+    static func cachedSystemValidationResult(
+        for component: AVAudioUnitComponent
+    ) -> AudioComponentValidationResult? {
+        var configInfo: Unmanaged<CFDictionary>?
+
+        let status = AudioComponentCopyConfigurationInfo(
+            component.audioComponent,
+            &configInfo
+        )
+
+        guard status == noErr,
+              let dict = configInfo?.takeRetainedValue() as? [String: Any],
+              let rawValue = dict[kAudioComponentConfigurationInfo_ValidationResult as String] as? UInt32
+        else {
+            return nil
+        }
+
+        return AudioComponentValidationResult(rawValue: rawValue)
+    }
+
+    // MARK: - Validate
+
     /// Validates the given Audio Unit component, falling back to external validation on macOS if needed.
-    public static func validate(component: AVAudioUnitComponent) -> ValidationResult {
+    public static func validate(component: AVAudioUnitComponent) async -> ValidationResult {
+        // Fast path: trust the system's cached validation result if it says "passed"
+        if let systemResult = cachedSystemValidationResult(for: component),
+           systemResult == .passed
+        {
+            return ValidationResult(result: .passed)
+        }
+
         // note component.passesAUVal causes some AUs to hang indefinitely here
 
         let result: ValidationResult =
             if #available(macOS 13.0, iOS 16.0, *) {
-                validateWithResults(component: component)
+                await validateWithResults(component: component)
 
             } else {
-                validateLegacy(component: component)
+                await validateLegacy(component: component)
             }
 
         if result.result == .passed {
@@ -39,41 +71,45 @@ public class AudioUnitValidator {
         }
 
         #if os(macOS)
-            return validateExternal(component: component)
+            return await validateExternal(component: component)
         #else
             return result
         #endif
     }
 
-    // AudioComponentValidate
-    static func validateLegacy(component: AVAudioUnitComponent) -> ValidationResult {
-        var result: AudioComponentValidationResult = .unknown
+    /// Wraps the synchronous AudioComponentValidate C API off the cooperative thread pool
+    /// using a GCD dispatch to avoid blocking Swift Concurrency threads.
+    static func validateLegacy(component: AVAudioUnitComponent) async -> ValidationResult {
+        nonisolated(unsafe) let audioComponent = component.audioComponent
+        let params = validateParams
 
-        let status = AudioComponentValidate(component.audioComponent, validateParams, &result)
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                var result: AudioComponentValidationResult = .unknown
 
-        guard status == noErr else {
-            Log.error("*AU AudioComponentValidate error", status.fourCC)
-            return ValidationResult(result: .failed, output: nil)
+                let status = AudioComponentValidate(audioComponent, params, &result)
+
+                guard status == noErr else {
+                    Log.error("*AU AudioComponentValidate error", status.fourCC)
+                    continuation.resume(returning: ValidationResult(result: .failed, output: nil))
+                    return
+                }
+
+                continuation.resume(returning: ValidationResult(result: result))
+            }
         }
-
-        return ValidationResult(result: result)
     }
 
-    // TODO: CLAUDE audit: audit this method of AudioUnit validation
+    /// Uses the modern AudioComponentValidateWithResults API with a checked continuation
+    /// instead of a DispatchSemaphore. The timeout is handled by kAudioComponentValidationParameter_TimeOut
+    /// in the params dictionary, which guarantees the callback fires.
     @available(macOS 13.0, iOS 16.0, *)
-    static func validateWithResults(component: AVAudioUnitComponent) -> ValidationResult {
-        let semaphore = DispatchSemaphore(value: 0)
-
-        var out = ValidationResult(result: .unknown)
-
-        AudioComponentValidateWithResults(component.audioComponent, validateParams) { result, _ in
-            out = ValidationResult(result: result)
-            semaphore.signal()
+    static func validateWithResults(component: AVAudioUnitComponent) async -> ValidationResult {
+        await withCheckedContinuation { continuation in
+            AudioComponentValidateWithResults(component.audioComponent, validateParams) { result, _ in
+                continuation.resume(returning: ValidationResult(result: result))
+            }
         }
-
-        _ = semaphore.wait(wallTimeout: .now() + .seconds(15))
-
-        return out
     }
 
     #if os(macOS)
@@ -95,9 +131,10 @@ public class AudioUnitValidator {
             return nil
         }
 
-        static func validateExternal(component: AVAudioUnitComponent) -> ValidationResult {
+        /// Wraps ProcessHandler.run() off the cooperative thread pool
+        /// using a GCD dispatch to avoid blocking Swift Concurrency threads.
+        static func validateExternal(component: AVAudioUnitComponent) async -> ValidationResult {
             guard let cmd = auval else {
-                // the auval tool is missing on this computer
                 return ValidationResult(result: .unknown)
             }
 
@@ -110,31 +147,36 @@ public class AudioUnitValidator {
                 desc.componentManufacturer.fourCC,
             ].compactMap(\.self)
 
+            let name = component.name
+
             Log.default(
-                "*AU validateExternal \(component.name):", cmd.lastPathComponent + " " + args.joined(separator: " ")
+                "*AU validateExternal \(name):", cmd.lastPathComponent + " " + args.joined(separator: " ")
             )
 
-            let process = ProcessHandler(url: cmd, args: args, qos: .default)
+            return await withCheckedContinuation { continuation in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let process = ProcessHandler(url: cmd, args: args, qos: .default)
 
-            do {
-                let out = try process.run()
+                    do {
+                        let out = try process.run()
 
-                let result = parse(result: out)
+                        let result = parse(result: out)
 
-                if result != .passed {
-                    Log.error("*AU validateExternal", component.name, "result:", result.description)
+                        if result != .passed {
+                            Log.error("*AU validateExternal", name, "result:", result.description)
+                        } else {
+                            Log.default("*AU validateExternal", name, "result:", result.description)
+                        }
 
-                } else {
-                    Log.default("*AU validateExternal", component.name, "result:", result.description)
+                        continuation.resume(returning: ValidationResult(
+                            result: result,
+                            output: out,
+                        ))
+
+                    } catch {
+                        continuation.resume(returning: ValidationResult(result: .failed, output: error.localizedDescription))
+                    }
                 }
-
-                return ValidationResult(
-                    result: result,
-                    output: out,
-                )
-
-            } catch {
-                return ValidationResult(result: .failed, output: error.localizedDescription)
             }
         }
 

@@ -83,12 +83,36 @@ public actor AudioUnitCacheManager {
 
     // HACK: some special cases to allow through the filter
     var allowedComponentDescriptions = [
-        AVAudioUnitVarispeed().audioComponentDescription,
+        AudioComponentDescription(
+            componentType: kAudioUnitType_FormatConverter,
+            componentSubType: kAudioUnitSubType_Varispeed,
+            componentManufacturer: kAudioUnitManufacturer_Apple,
+            componentFlags: 0,
+            componentFlagsMask: 0
+        ),
     ]
+
+    /// Cached result of the compatible components query. Invalidated on componentRegistrationsChanged.
+    private var _cachedCompatibleComponents: [AVAudioUnitComponent]?
+
+    /// Returns the cached compatible components, querying the system if not yet cached.
+    func cachedCompatibleComponents() -> [AVAudioUnitComponent] {
+        if let cached = _cachedCompatibleComponents {
+            return cached
+        }
+        let components = Self.compatibleComponents
+        _cachedCompatibleComponents = components
+        return components
+    }
+
+    /// Invalidates the cached compatible components, forcing a fresh query on next access.
+    func invalidateCachedComponents() {
+        _cachedCompatibleComponents = nil
+    }
 
     /// A textual description of all compatible Audio Units and the cache file path.
     public var debugDescription: String {
-        let names = AudioUnitCacheManager.compatibleComponents.map(\.name).sorted()
+        let names = cachedCompatibleComponents().map(\.name).sorted()
 
         var out = "\(names.count) total Audio Unit\(names.pluralString) found\n\n"
         out += names.joined(separator: ", ")
@@ -163,6 +187,13 @@ public actor AudioUnitCacheManager {
         Log.debug("*AU \(systemComponentsResponse.results.count) Effects are available now.")
 
         await send(event: .cacheLoaded(systemComponentsResponse))
+
+        cacheObservation.eventHandler = { [weak self] _ in
+            guard let self else { return }
+            Task {
+                await self.invalidateCachedComponents()
+            }
+        }
 
         cacheObservation.start()
     }

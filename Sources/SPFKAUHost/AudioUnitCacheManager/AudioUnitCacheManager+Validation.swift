@@ -2,7 +2,7 @@
 
 import AEXML
 import AudioToolbox
-import AVFoundation
+@preconcurrency import AVFoundation
 import SPFKAudioBase
 import SPFKBase
 import SwiftExtensions
@@ -63,45 +63,73 @@ extension AudioUnitCacheManager {
     }
 
     /// Validates the given components (or all compatible components if nil) and returns their validation results.
+    /// Uses a TaskGroup with a sliding window of concurrent validations for throughput.
     public func validate(components: [AVAudioUnitComponent]? = nil) async throws -> [ComponentValidationResult] {
+        let maxConcurrency = 4
+
+        // Snapshot actor state before entering the unstructured Task
+        let resolvedComponents = components ?? cachedCompatibleComponents()
+        let allowedDescs = allowedComponentDescriptions
+
         scanTask = Task<[ComponentValidationResult], Error>(priority: .high) {
-            var results = [ComponentValidationResult]()
+            let count = resolvedComponents.count
 
-            let components = components ?? AudioUnitCacheManager.compatibleComponents
+            return try await withThrowingTaskGroup(
+                of: ComponentValidationResult.self,
+                returning: [ComponentValidationResult].self
+            ) { taskGroup in
+                try Task.checkCancellation()
 
-            for i in 0 ..< components.count {
-                guard !Task.isCancelled else {
-                    return results
+                // Seed the initial batch
+                let initialBatch = min(maxConcurrency, count)
+
+                for i in 0 ..< initialBatch {
+                    let component = resolvedComponents[i]
+                    taskGroup.addTask {
+                        await Self.validate(component: component, allowedDescriptions: allowedDescs)
+                    }
                 }
 
-                let component = components[i]
+                var results = [ComponentValidationResult]()
+                results.reserveCapacity(count)
+                var nextIndex = initialBatch
+                var completedCount = 0
 
-                let name = component.resolvedName
+                // As each task completes, report progress and enqueue the next
+                for try await result in taskGroup {
+                    try Task.checkCancellation()
 
-                Log.debug("Checking", name)
+                    results.append(result)
+                    completedCount += 1
 
-                await send(event: .validating(name: name, index: i, count: components.count))
+                    await self.send(event: .validating(
+                        name: result.name,
+                        completed: completedCount,
+                        count: count
+                    ))
 
-                results.append(
-                    validate(component: component)
-                )
+                    if nextIndex < count {
+                        let component = resolvedComponents[nextIndex]
+                        taskGroup.addTask {
+                            await Self.validate(component: component, allowedDescriptions: allowedDescs)
+                        }
+                        nextIndex += 1
+                    }
+                }
 
-                await Task.yield()
+                return results.sorted { $0.manufacturerName < $1.manufacturerName }
             }
-
-            results = results.sorted(by: { lhs, rhs in
-                lhs.manufacturerName < rhs.manufacturerName
-            })
-
-            return results
         }
 
         defer { scanTask = nil }
         return try await scanTask?.value ?? []
     }
 
-    private func validate(component: AVAudioUnitComponent) -> ComponentValidationResult {
-        guard Self.shouldValidate(audioComponentDescription: component.audioComponentDescription) else {
+    private static func validate(
+        component: AVAudioUnitComponent,
+        allowedDescriptions: [AudioComponentDescription]
+    ) async -> ComponentValidationResult {
+        guard shouldValidate(audioComponentDescription: component.audioComponentDescription) else {
             Log.debug("* Skipping", component.name)
 
             return ComponentValidationResult(
@@ -113,14 +141,14 @@ extension AudioUnitCacheManager {
 
         let audioComponentDescription = component.audioComponentDescription
 
-        let validationResult = AudioUnitValidator.validate(component: component)
+        let validationResult = await AudioUnitValidator.validate(component: component)
 
         if validationResult.result != .passed {
             Log.error("*AU validation failed for", component.resolvedName, ". More info run in terminal:", component.audioComponentDescription.validationCommand)
         }
 
         // HACK: Some special cases that might not be effects or music device specified
-        if allowedComponentDescriptions.contains(where: {
+        if allowedDescriptions.contains(where: {
             audioComponentDescription.matches($0)
         }) {
             return ComponentValidationResult(

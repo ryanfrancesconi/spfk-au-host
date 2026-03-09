@@ -124,11 +124,11 @@ struct AudioUnitCacheEventTests {
     }
 
     @Test func validating() {
-        let event = AudioUnitCacheEvent.validating(name: "AUDelay", index: 5, count: 20)
+        let event = AudioUnitCacheEvent.validating(name: "AUDelay", completed: 5, count: 20)
 
-        if case let .validating(name, index, count) = event {
+        if case let .validating(name, completed, count) = event {
             #expect(name == "AUDelay")
-            #expect(index == 5)
+            #expect(completed == 5)
             #expect(count == 20)
         } else {
             Issue.record("Expected validating")

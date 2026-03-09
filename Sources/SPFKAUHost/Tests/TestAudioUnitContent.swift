@@ -54,7 +54,7 @@ public struct TestAudioUnitContent {
         ].compactMap(\.self)
     }
 
-    let _audioUnitManufacturerCollection: [AudioUnitManufacturerCollection]
+    private let _audioUnitManufacturerCollection: [AudioUnitManufacturerCollection]
 
     public init() {
         _audioUnitManufacturerCollection = AudioUnitManufacturerCollection.createGroup(from: Self.components)

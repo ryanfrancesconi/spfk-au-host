@@ -6,7 +6,7 @@ import SPFKBase
 /// Audio Unit v3 Host for loading external Audio Units and connecting them together
 public actor AudioUnitChain {
     /// The default amount of inserts
-    public static let defaultInsertCount = 6
+    public static let defaultInsertCount = 4
 
     /// Delegate that will be sent notifications
     public var delegate: AudioUnitChainDelegate?

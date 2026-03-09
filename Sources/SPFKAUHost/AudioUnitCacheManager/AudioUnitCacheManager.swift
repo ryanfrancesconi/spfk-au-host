@@ -95,10 +95,11 @@ public actor AudioUnitCacheManager {
     private var _cachedCompatibleComponents: [AVAudioUnitComponent]?
 
     /// Returns the cached compatible components, querying the system if not yet cached.
-    func cachedCompatibleComponents() -> [AVAudioUnitComponent] {
+    public func cachedCompatibleComponents() -> [AVAudioUnitComponent] {
         if let cached = _cachedCompatibleComponents {
             return cached
         }
+
         let components = Self.compatibleComponents
         _cachedCompatibleComponents = components
         return components

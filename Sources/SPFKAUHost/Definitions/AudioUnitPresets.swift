@@ -2,7 +2,7 @@
 
 import AEXML
 import AudioToolbox
-import AVFoundation
+@preconcurrency import AVFoundation
 import Foundation
 import SPFKUtils
 
@@ -99,20 +99,28 @@ public enum AudioUnitPresets {
 
     /// Loads a preset from an XML element into the audio unit, returning the parsed full state dictionary.
     @discardableResult
-    public static func loadPreset(for avAudioUnit: AVAudioUnit, element: AEXMLElement) -> [String: Any]? {
+    public static func loadPreset(for avAudioUnit: AVAudioUnit, element: AEXMLElement) async -> [String: Any]? {
         guard let fullState = try? PlistUtilities.plistToDictionary(element: element) else {
             return nil
         }
 
-        loadPreset(for: avAudioUnit, fullState: fullState)
+        await loadPreset(for: avAudioUnit, fullState: fullState)
 
         return fullState
     }
 
     /// Applies the given full state dictionary to the audio unit and notifies listeners of the change.
-    public static func loadPreset(for avAudioUnit: AVAudioUnit, fullState: [String: Any]) {
-        // TODO: CLAUDE audit: fullStateRoundTrip(): [Internal] Thread running at User-initiated quality-of-service class waiting on a lower QoS thread running at Default quality-of-service class. Investigate ways to avoid priority inversions: `avAudioUnit.auAudioUnit.fullState = fullState`
-        avAudioUnit.auAudioUnit.fullState = fullState
+    /// Runs the fullState assignment at default priority to avoid priority inversion with AUAudioUnit internals.
+    public static func loadPreset(for avAudioUnit: AVAudioUnit, fullState: [String: Any]) async {
+        // Dispatch at default QoS to avoid priority inversion — AUAudioUnit.fullState
+        // setter internally synchronises on a Default-QoS thread.
+        nonisolated(unsafe) let state = fullState
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .default).async {
+                avAudioUnit.auAudioUnit.fullState = state
+                continuation.resume()
+            }
+        }
 
         let status = AudioUnitStateNotifier.notifyListeners(of: avAudioUnit.audioUnit)
 

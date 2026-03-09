@@ -173,7 +173,7 @@ struct AudioUnitPresetsTests {
         }
 
         // Load the original state back (this calls notifyListeners internally)
-        AudioUnitPresets.loadPreset(for: avAudioUnit, fullState: originalState)
+        await AudioUnitPresets.loadPreset(for: avAudioUnit, fullState: originalState)
 
         // Verify state was restored
         let restoredState = avAudioUnit.auAudioUnit.fullState
@@ -197,7 +197,7 @@ struct AudioUnitPresetsTests {
         }
 
         // Load state back from XML element (this calls notifyListeners internally)
-        let restored = AudioUnitPresets.loadPreset(for: avAudioUnit, element: document!.root)
+        let restored = await AudioUnitPresets.loadPreset(for: avAudioUnit, element: document!.root)
         #expect(restored != nil)
         await drainRunLoop()
     }

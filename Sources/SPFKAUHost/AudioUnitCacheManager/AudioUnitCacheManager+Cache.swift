@@ -1,104 +1,92 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
-import AEXML
 import AVFoundation
+import SPFKAudioBase
 import SPFKBase
 import SwiftExtensions
 
+// MARK: - Codable Cache Types
+
+/// A single cached audio unit entry for JSON persistence.
+private struct CachedAudioUnit: Codable {
+    let name: String
+    let manufacturerName: String
+    let typeName: String
+    let version: String
+    let componentType: UInt32
+    let componentSubType: UInt32
+    let componentManufacturer: UInt32
+    let componentFlags: UInt32
+    let componentFlagsMask: UInt32
+    let validation: String
+    let isEnabled: Bool
+}
+
+/// The top-level JSON wrapper for the audio unit cache file.
+private struct CachedAudioUnitCollection: Codable {
+    let cachedComponentUIDs: [String]
+    let audioUnits: [CachedAudioUnit]
+}
+
+// MARK: - Cache
+
 extension AudioUnitCacheManager {
-    /// Whether the cached component count differs from the current system count, indicating a rescan is needed.
+    /// Whether the set of system components differs from the cached set, indicating a rescan is needed.
     public var validationIsNeeded: Bool {
-        cachedCompatibleComponents().count != cachedComponentCount
+        let systemUIDs = Set(cachedCompatibleComponents().map(\.audioComponentDescription.uid))
+        return systemUIDs != cachedComponentUIDs
     }
 
-    private func cacheDocument() throws -> AEXMLDocument {
+    private func loadCacheData() throws -> CachedAudioUnitCollection {
         guard let cacheURL else {
             throw NSError(description: "*AU nil cache URL")
         }
 
         guard cacheURL.exists else {
-            throw NSError(description: "*AU AudioUnitCache.xml wasn't found")
+            throw NSError(description: "*AU cache file wasn't found")
         }
 
-        guard let doc = try? AEXMLDocument(fromURL: cacheURL) else {
-            throw NSError(description: "*AU Failed to parse cache file. Document is invalid.")
-        }
+        let data = try Data(contentsOf: cacheURL)
+        let collection = try JSONDecoder().decode(CachedAudioUnitCollection.self, from: data)
 
         Log.debug("*AU Parsed", cacheURL.path)
 
-        return doc
+        return collection
     }
 
-    // MARK: - loading effects
+    // MARK: - Loading
 
-    /// Load AudioComponentDescription list from xml cache file
-    /// - Parameter completionHandler: callback with an array of `AVAudioUnitComponent`
+    /// Load AudioComponentDescription list from the JSON cache file.
     func loadCache() async throws -> SystemComponentsResponse {
-        cachedComponentCount = nil
-
-        var response = SystemComponentsResponse()
-
-        let doc = try cacheDocument()
-        response = try await parse(cache: doc)
-
-        return response
+        cachedComponentUIDs = nil
+        let collection = try loadCacheData()
+        return parse(cache: collection)
     }
 
-    func parse(cache doc: AEXMLDocument) async throws -> SystemComponentsResponse {
-        guard let collection = doc.root["au"].all,
-              collection.isNotEmpty
-        else {
-            throw NSError(description: "*AU No entries in cache file")
+    private func parse(cache collection: CachedAudioUnitCollection) -> SystemComponentsResponse {
+        cachedComponentUIDs = Set(collection.cachedComponentUIDs)
+
+        var results = collection.audioUnits.compactMap { item in
+            parse(cacheItem: item)
         }
 
-        // the last saved value
-        cachedComponentCount = doc.root.attributes["cachedComponentCount"]?.int
+        results.sort { $0.manufacturerName < $1.manufacturerName }
 
-        // proceed to parse what is in the cache regardless
-        // and convert to components
-        var out = [ComponentValidationResult]()
-
-        out = collection.compactMap {
-            parse(cacheItem: $0)
-        }
-
-        out = out.sorted(by: { lhs, rhs in
-            lhs.manufacturerName < rhs.manufacturerName
-        })
-
-        return SystemComponentsResponse(results: out)
+        return SystemComponentsResponse(results: results)
     }
 
-    private func parse(cacheItem item: AEXMLElement) -> ComponentValidationResult? {
-        guard let componentType = item.attributes["componentType"]?.uInt32,
-              let componentSubType = item.attributes["componentSubType"]?.uInt32,
-              let componentManufacturer = item.attributes["componentManufacturer"]?.uInt32
-        else {
-            Log.error("Failed to create required data from \(item.xmlCompact)")
-
-            return nil
-        }
-
-        let componentFlags = item.attributes["componentFlags"]?.uInt32 ?? 0
-        let componentFlagsMask = item.attributes["componentFlagsMask"]?.uInt32 ?? 0
-
-        var isEnabled = true
-
-        if let value = item.attributes["isEnabled"]?.boolValue {
-            isEnabled = value
-        }
-
+    private func parse(cacheItem item: CachedAudioUnit) -> ComponentValidationResult? {
         let audioComponentDescription = AudioComponentDescription(
-            componentType: componentType,
-            componentSubType: componentSubType,
-            componentManufacturer: componentManufacturer,
-            componentFlags: componentFlags,
-            componentFlagsMask: componentFlagsMask
+            componentType: item.componentType,
+            componentSubType: item.componentSubType,
+            componentManufacturer: item.componentManufacturer,
+            componentFlags: item.componentFlags,
+            componentFlagsMask: item.componentFlagsMask
         )
 
         var component: AVAudioUnitComponent?
 
-        if isEnabled,
+        if item.isEnabled,
            let avComponent = AVAudioUnitComponentManager.shared()
            .components(matching: audioComponentDescription)
            .first
@@ -108,9 +96,7 @@ extension AudioUnitCacheManager {
 
         var validationResult: AudioComponentValidationResult?
 
-        if let desc = item.attributes["validation"],
-           let value = AudioComponentValidationResult(description: desc)
-        {
+        if let value = AudioComponentValidationResult(description: item.validation) {
             validationResult = value
         }
 
@@ -122,22 +108,24 @@ extension AudioUnitCacheManager {
                     audioComponentDescription: audioComponentDescription,
                     component: component,
                     validation: validation,
-                    isEnabled: isEnabled
+                    isEnabled: item.isEnabled
                 )
             } else {
                 ComponentValidationResult(
                     audioComponentDescription: audioComponentDescription,
                     validation: validation,
-                    isEnabled: isEnabled,
-                    name: item.attributes["name"] ?? "",
-                    typeName: item.attributes["typeName"] ?? "",
-                    manufacturerName: item.attributes["manufacturerName"] ?? "",
-                    versionString: item.attributes["version"] ?? ""
+                    isEnabled: item.isEnabled,
+                    name: item.name,
+                    typeName: item.typeName,
+                    manufacturerName: item.manufacturerName,
+                    versionString: item.version
                 )
             }
 
         return result
     }
+
+    // MARK: - Creating
 
     /// Called to refresh the internal Audio Unit cache by collecting system AUs
     /// - Parameter completionHandler: handler
@@ -164,7 +152,9 @@ extension AudioUnitCacheManager {
         await send(event: .cacheUpdated)
     }
 
-    /// Write current component collection to disk
+    // MARK: - Writing
+
+    /// Write current component collection to disk as JSON.
     public func writeCache() async throws {
         guard let cacheURL else {
             throw NSError(description: "*AU cacheURL is nil")
@@ -176,43 +166,37 @@ extension AudioUnitCacheManager {
 
         removeCache()
 
-        let componentCountOnDisk = cachedCompatibleComponents().count
+        let componentUIDs = cachedCompatibleComponents().map(\.audioComponentDescription.uid).sorted()
 
-        let effectsAttributes = ["cachedComponentCount": String(componentCountOnDisk)]
-        let root = AEXMLElement(name: "effects", value: nil, attributes: effectsAttributes)
-
-        for au in effects {
+        let audioUnits = effects.map { au -> CachedAudioUnit in
             let acd = au.audioComponentDescription
-
-            let attributes = [
-                "name": au.name,
-                "manufacturerName": au.manufacturerName,
-                "typeName": au.typeName,
-                "version": au.versionString,
-                "componentType": String(describing: acd.componentType),
-                "componentSubType": String(describing: acd.componentSubType),
-                "componentManufacturer": String(describing: acd.componentManufacturer),
-                "componentFlags": String(describing: acd.componentFlags),
-                "componentFlagsMask": String(describing: acd.componentFlagsMask),
-                "validation": au.validation.result.description,
-                "isEnabled": au.isEnabled.string,
-            ]
-
-            root.addChild(name: "au", value: nil, attributes: attributes)
+            return CachedAudioUnit(
+                name: au.name,
+                manufacturerName: au.manufacturerName,
+                typeName: au.typeName,
+                version: au.versionString,
+                componentType: acd.componentType,
+                componentSubType: acd.componentSubType,
+                componentManufacturer: acd.componentManufacturer,
+                componentFlags: acd.componentFlags,
+                componentFlagsMask: acd.componentFlagsMask,
+                validation: au.validation.result.description,
+                isEnabled: au.isEnabled
+            )
         }
 
-        let doc = AEXMLDocument(root: root, options: AEXMLOptions())
-
-        // Log.debug(doc.xml)
+        let collection = CachedAudioUnitCollection(
+            cachedComponentUIDs: componentUIDs,
+            audioUnits: audioUnits
+        )
 
         Log.debug("*AU Writing cache to", cacheURL)
 
-        let string = doc.xml.removing(characters: .null)
-        try string.write(
-            to: cacheURL,
-            atomically: false,
-            encoding: .utf8
-        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(collection)
+
+        try data.write(to: cacheURL)
 
         Log.debug("*AU Wrote cache to", cacheURL)
     }

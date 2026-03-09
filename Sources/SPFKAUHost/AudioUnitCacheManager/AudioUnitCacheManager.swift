@@ -1,6 +1,5 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
-import AEXML
 import AVFoundation
 import SPFKBase
 import SwiftExtensions
@@ -14,9 +13,9 @@ public actor AudioUnitCacheManager {
         self.delegate = delegate
     }
 
-    /// Where it writes its xml cache file. Can be set to an alternate directory for testing.
+    /// Where it writes its cache file. Can be set to an alternate directory for testing.
     public var cachesDirectory: URL?
-    /// Updates the directory used for writing the XML cache file.
+    /// Updates the directory used for writing the cache file.
     public func update(cachesDirectory: URL) {
         self.cachesDirectory = cachesDirectory
     }
@@ -33,7 +32,7 @@ public actor AudioUnitCacheManager {
             return nil
         }
 
-        let filename = "AudioUnitCache.xml"
+        let filename = "AudioUnitCache.json"
 
         // the caches folder might not yet exist
         if !folder.exists {
@@ -52,7 +51,7 @@ public actor AudioUnitCacheManager {
         return folder.appendingPathComponent(filename)
     }
 
-    var cachedComponentCount: Int?
+    var cachedComponentUIDs: Set<String>?
 
     /// All results including effects that are incompatible
     public private(set) var componentCollection: ComponentCollection?
@@ -126,6 +125,9 @@ public actor AudioUnitCacheManager {
     }
 
     var cacheObservation: AudioUnitCacheObservation = .init()
+
+    /// Whether the cache observation is currently active.
+    var isCacheObserving: Bool { cacheObservation.isObserving }
 
     /// Creates a new cache manager with an optional caches directory and delegate.
     public init(cachesDirectory: URL? = nil, delegate: AudioUnitCacheManagerDelegate? = nil) {

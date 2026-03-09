@@ -56,11 +56,10 @@ public class AudioUnitValidator {
             return ValidationResult(result: .failed, output: nil)
         }
 
-        Log.default("*AU validateSync", component.name, "result:", result.description)
-
         return ValidationResult(result: result)
     }
 
+    // TODO: CLAUDE audit: audit this method of AudioUnit validation
     @available(macOS 13.0, iOS 16.0, *)
     static func validateWithResults(component: AVAudioUnitComponent) -> ValidationResult {
         let semaphore = DispatchSemaphore(value: 0)
@@ -73,8 +72,6 @@ public class AudioUnitValidator {
         }
 
         _ = semaphore.wait(wallTimeout: .now() + .seconds(15))
-
-        Log.default("*AU validateWithResults", component.name, "result:", out.result.description)
 
         return out
     }

@@ -167,7 +167,7 @@ extension AudioUnitCacheManager {
     /// Write current component collection to disk
     public func writeCache() async throws {
         guard let cacheURL else {
-            throw NSError(description: "*AU Failed to create cache URL")
+            throw NSError(description: "*AU cacheURL is nil")
         }
 
         guard let effects: [ComponentValidationResult] = componentCollection?.validationResults else {

@@ -8,7 +8,7 @@ import SPFKTesting
 import Testing
 
 final class AudioUnitAvailabilityTests: TestCaseModel {
-    let dummyEngine = TestAudioUnitContent()
+    let dummyEngine = AudioUnitTestContent()
 
     init() async throws {}
 

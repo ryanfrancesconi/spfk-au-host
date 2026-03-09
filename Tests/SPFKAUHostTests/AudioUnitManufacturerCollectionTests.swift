@@ -62,7 +62,7 @@ struct AudioUnitManufacturerCollectionTests {
     }
 
     @Test func createGroupFromComponents() {
-        let components = TestAudioUnitContent.components
+        let components = AudioUnitTestContent.components
 
         guard components.count >= 2 else {
             Issue.record("Need at least 2 components for test")
@@ -80,7 +80,7 @@ struct AudioUnitManufacturerCollectionTests {
     }
 
     @Test func createGroupGroupsByManufacturer() {
-        let components = TestAudioUnitContent.components
+        let components = AudioUnitTestContent.components
 
         let groups = AudioUnitManufacturerCollection.createGroup(from: components)
 
@@ -93,7 +93,7 @@ struct AudioUnitManufacturerCollectionTests {
     }
 
     @Test func createGroupComponentsSortedByName() {
-        let components = TestAudioUnitContent.components
+        let components = AudioUnitTestContent.components
 
         let groups = AudioUnitManufacturerCollection.createGroup(from: components)
 

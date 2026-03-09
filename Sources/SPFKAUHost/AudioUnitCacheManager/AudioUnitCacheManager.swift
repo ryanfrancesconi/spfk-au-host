@@ -29,6 +29,7 @@ public actor AudioUnitCacheManager {
 
     private func defaultCacheURL() -> URL? {
         guard let folder = cachesDirectory else {
+            Log.error("cachesDirectory is nil")
             return nil
         }
 

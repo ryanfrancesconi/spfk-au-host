@@ -7,15 +7,15 @@ import Testing
 
 struct AudioUnitChainDataTests {
     @Test func initWithInsertCount() async {
-        let data = AudioUnitChainData(insertCount: 4)
+        let data = AudioUnitChainData(insertCount: 10)
         let count = await data.insertCount
-        #expect(count == 4)
+        #expect(count == 10)
     }
 
     @Test func defaultInsertCount() async {
         let data = AudioUnitChainData(insertCount: AudioUnitChain.defaultInsertCount)
         let count = await data.insertCount
-        #expect(count == 6)
+        #expect(count == 4)
     }
 
     @Test func effectsChainStartsEmpty() async {

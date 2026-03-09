@@ -5,6 +5,7 @@ import AVFoundation
 import Foundation
 import SPFKBase
 import SPFKTesting
+import SPFKUtils
 import Testing
 
 @testable import SPFKAUHost
@@ -19,12 +20,6 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 
     func tearDown() async throws {
         await manager.dispose()
-    }
-
-    @Test(.disabled("this takes some time so best not to include in automated runs"))
-    func createCache() async throws {
-        deleteBinOnExit = false
-        try await manager.createCache()
     }
 
     let cacheDocument: AEXMLDocument? = {

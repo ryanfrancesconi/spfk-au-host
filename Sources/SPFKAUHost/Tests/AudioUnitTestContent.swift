@@ -3,7 +3,7 @@ import SPFKAudioBase
 import SPFKBase
 
 /// This doesn't actually do any audio - it's just filling in the delegate requirements
-public struct TestAudioUnitContent {
+public struct AudioUnitTestContent {
     public static let auDelayDesc = AudioComponentDescription(
         componentType: 1_635_083_896,
         componentSubType: 1_684_368_505,
@@ -61,7 +61,7 @@ public struct TestAudioUnitContent {
     }
 }
 
-extension TestAudioUnitContent: AudioUnitChainDelegate {
+extension AudioUnitTestContent: AudioUnitChainDelegate {
     public func audioUnitChain(_ audioUnitChain: AudioUnitChain, event: AudioUnitChainEvent) async {
         Log.debug(event)
     }
@@ -74,7 +74,7 @@ extension TestAudioUnitContent: AudioUnitChainDelegate {
     }
 }
 
-extension TestAudioUnitContent: AudioUnitAvailability {
+extension AudioUnitTestContent: AudioUnitAvailability {
     public var availableAudioUnitComponents: [AVAudioUnitComponent]? {
         Self.components
     }

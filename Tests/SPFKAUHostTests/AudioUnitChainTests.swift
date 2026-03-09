@@ -9,7 +9,7 @@ import Testing
 
 final class AudioUnitChainTests: TestCaseModel {
     let audioUnitChain: AudioUnitChain
-    let dummyEngine = TestAudioUnitContent()
+    let dummyEngine = AudioUnitTestContent()
 
     init() async throws {
         audioUnitChain = .init(delegate: dummyEngine)
@@ -22,9 +22,9 @@ final class AudioUnitChainTests: TestCaseModel {
     }
 
     @Test func insert() async throws {
-        try await audioUnitChain.insertAudioUnit(componentDescription: TestAudioUnitContent.auDelayDesc, at: 0)
-        try await audioUnitChain.insertAudioUnit(componentDescription: TestAudioUnitContent.auMatrixReverbDesc, at: 1)
-        try await audioUnitChain.insertAudioUnit(componentDescription: TestAudioUnitContent.auFilterDesc, at: 2)
+        try await audioUnitChain.insertAudioUnit(componentDescription: AudioUnitTestContent.auDelayDesc, at: 0)
+        try await audioUnitChain.insertAudioUnit(componentDescription: AudioUnitTestContent.auMatrixReverbDesc, at: 1)
+        try await audioUnitChain.insertAudioUnit(componentDescription: AudioUnitTestContent.auFilterDesc, at: 2)
         try await audioUnitChain.connect()
 
         await #expect(audioUnitChain.data.unbypassedEffects.count == 3)
@@ -35,7 +35,7 @@ final class AudioUnitChainTests: TestCaseModel {
     @Test func insertOutOfBounds() async throws {
         await #expect(throws: (any Error).self) {
             try await audioUnitChain.insertAudioUnit(
-                componentDescription: TestAudioUnitContent.auDelayDesc, at: audioUnitChain.insertCount + 1
+                componentDescription: AudioUnitTestContent.auDelayDesc, at: audioUnitChain.insertCount + 1
             )
         }
     }

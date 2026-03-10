@@ -22,9 +22,9 @@ extension AudioUnitChain {
                 continue
             }
 
-            errors[index] = try await insertAudioUnit(effectDescription: desc, at: index)
+            errors[index] = try await insertAudioUnit(effectDescription: desc, reconnectChain: false, at: index)
 
-            try await bypassEffect(at: index, state: desc.isBypassed, reconnect: false)
+            try await bypassEffect(at: index, isBypassed: desc.isBypassed, reconnectChain: false)
         }
 
         try await connect()
@@ -33,8 +33,10 @@ extension AudioUnitChain {
     }
 
     /// Inserts an audio unit from an effect description at the given index, applying any saved state.
+    @discardableResult
     public func insertAudioUnit(
         effectDescription: AudioEffectDescription,
+        reconnectChain: Bool = true,
         at index: Int
     ) async throws -> Error? {
         guard let componentDescription = effectDescription.componentDescription else {
@@ -57,6 +59,7 @@ extension AudioUnitChain {
     /// Create the Audio Unit at the specified index of the chain
     public func insertAudioUnit(
         componentDescription: AudioComponentDescription,
+        reconnectChain: Bool = true,
         at index: Int
     ) async throws {
         try await data.check(index: index)
@@ -91,6 +94,10 @@ extension AudioUnitChain {
         }
 
         try await insert(audioUnit: audioUnit, at: index)
+
+        if reconnectChain {
+            try await connect()
+        }
 
         await delegate?.audioUnitChain(self, event: .didInsert(index: index))
     }

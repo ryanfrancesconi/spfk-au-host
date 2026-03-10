@@ -1,7 +1,7 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
-import AudioToolbox
 @preconcurrency import AVFoundation
+import AudioToolbox
 import SPFKBase
 
 extension AudioUnitChain {
@@ -41,18 +41,16 @@ extension AudioUnitChain {
     }
 
     /// Sets the bypass state of the effect at the specified index.
-    public func bypassEffect(at index: Int, state: Bool, reconnect: Bool) async throws {
-        await delegate?.audioUnitChain(self, event: .willBypass(index: index, state: state))
+    public func bypassEffect(at index: Int, isBypassed: Bool, reconnectChain: Bool = true) async throws {
+        await delegate?.audioUnitChain(self, event: .willBypass(index: index, isBypassed: isBypassed))
 
-        try await state ?
-            data.bypass(index: index) :
-            data.enable(index: index)
+        try await isBypassed ? data.bypass(index: index) : data.enable(index: index)
 
-        if reconnect {
+        if reconnectChain {
             try await connect()
         }
 
-        await delegate?.audioUnitChain(self, event: .didBypass(index: index, state: state))
+        await delegate?.audioUnitChain(self, event: .didBypass(index: index, isBypassed: isBypassed))
     }
 
     /// Moves an effect from one position to another in the chain and reconnects.

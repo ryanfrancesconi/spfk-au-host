@@ -6,8 +6,8 @@ import Foundation
 public enum AudioUnitChainEvent: Sendable {
     case connectionError(error: Error)
 
-    case willBypass(index: Int, state: Bool)
-    case didBypass(index: Int, state: Bool)
+    case willBypass(index: Int, isBypassed: Bool)
+    case didBypass(index: Int, isBypassed: Bool)
 
     case willRemove(index: Int)
     case didRemove(index: Int)

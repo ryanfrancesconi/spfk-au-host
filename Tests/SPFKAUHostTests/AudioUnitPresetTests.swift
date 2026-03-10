@@ -19,7 +19,7 @@ private func drainRunLoop() async {
 struct AudioUnitStateNotifierTests {
     static let auDelayDesc = AudioComponentDescription(
         componentType: kAudioUnitType_Effect,
-        componentSubType: 0x64656C79, // 'dely' - AUDelay
+        componentSubType: 0x6465_6C79, // 'dely' - AUDelay
         componentManufacturer: kAudioUnitManufacturer_Apple,
         componentFlags: 0,
         componentFlagsMask: 0
@@ -35,7 +35,7 @@ struct AudioUnitStateNotifierTests {
 
     @Test func notifyListenersReturnsNoErr() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auDelayDesc,
+            with: AudioUnitTestContent.auDelayDesc,
             options: []
         )
         let status = AudioUnitStateNotifier.notifyListeners(of: avAudioUnit.audioUnit)
@@ -45,7 +45,7 @@ struct AudioUnitStateNotifierTests {
 
     @Test func notifyListenersOnAUWithParameters() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auDelayDesc,
+            with: AudioUnitTestContent.auDelayDesc,
             options: []
         )
 
@@ -80,7 +80,7 @@ struct AudioUnitStateNotifierTests {
 
     @Test func loadFactoryPresetWithInvalidNameFails() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auDelayDesc,
+            with: AudioUnitTestContent.auDelayDesc,
             options: []
         )
 
@@ -133,17 +133,9 @@ struct AudioUnitStateNotifierTests {
 // MARK: - AudioUnitPresets
 
 struct AudioUnitPresetsTests {
-    static let auDelayDesc = AudioComponentDescription(
-        componentType: kAudioUnitType_Effect,
-        componentSubType: 0x64656C79, // 'dely' - AUDelay
-        componentManufacturer: kAudioUnitManufacturer_Apple,
-        componentFlags: 0,
-        componentFlagsMask: 0
-    )
-
     @Test func fullStateDocumentReturnsXML() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auDelayDesc,
+            with: AudioUnitTestContent.auDelayDesc,
             options: []
         )
 
@@ -157,7 +149,7 @@ struct AudioUnitPresetsTests {
 
     @Test func loadPresetFromFullState() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auDelayDesc,
+            with: AudioUnitTestContent.auDelayDesc,
             options: []
         )
 
@@ -183,7 +175,7 @@ struct AudioUnitPresetsTests {
 
     @Test func fullStateRoundTrip() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auDelayDesc,
+            with: AudioUnitTestContent.auDelayDesc,
             options: []
         )
 
@@ -202,32 +194,25 @@ struct AudioUnitPresetsTests {
         await drainRunLoop()
     }
 
-    #if os(macOS)
-    @Test func presetsFoldersReturnsURLs() async throws {
+    @Test func factoryPresetsReturnsArray() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auDelayDesc,
+            with: AudioUnitTestContent.auDynamicsProcessorDesc,
             options: []
         )
 
-        let folders = AudioUnitPresets.Locations.getPresetsFolders(for: avAudioUnit)
-        #expect(folders != nil)
-        #expect((folders?.count ?? 0) >= 1)
-
-        // Primary folder should be under ~/Library/Audio/Presets
-        if let primary = folders?.first {
-            #expect(primary.path.contains("Library/Audio/Presets"))
-        }
+        let presets = avAudioUnit.auAudioUnit.factoryPresets
+        #expect(presets?.isNotEmpty == true)
     }
 
-    @Test func getUserPresetsReturnsArray() async throws {
+    @Test func supportsUserPresets() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auDelayDesc,
+            with: AudioUnitTestContent.auDynamicsProcessorDesc,
             options: []
         )
 
-        // getUserPresets should return an array (possibly empty) rather than nil
-        let presets = AudioUnitPresets.Locations.getUserPresets(for: avAudioUnit)
-        #expect(presets != nil)
+        #expect(avAudioUnit.auAudioUnit.supportsUserPresets)
+
+        let presets = avAudioUnit.auAudioUnit.userPresets
+        #expect(presets.isNotEmpty)
     }
-    #endif
 }

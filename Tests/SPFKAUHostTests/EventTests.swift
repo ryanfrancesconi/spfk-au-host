@@ -18,7 +18,7 @@ struct AudioUnitChainEventTests {
     }
 
     @Test func willBypass() {
-        let event = AudioUnitChainEvent.willBypass(index: 2, state: true)
+        let event = AudioUnitChainEvent.willBypass(index: 2, isBypassed: true)
 
         if case let .willBypass(index, state) = event {
             #expect(index == 2)
@@ -29,7 +29,7 @@ struct AudioUnitChainEventTests {
     }
 
     @Test func didBypass() {
-        let event = AudioUnitChainEvent.didBypass(index: 3, state: false)
+        let event = AudioUnitChainEvent.didBypass(index: 3, isBypassed: false)
 
         if case let .didBypass(index, state) = event {
             #expect(index == 3)

@@ -20,6 +20,7 @@ extension AudioUnitChain {
             return nil
         }
 
+        // Try .loadOutOfProcess first
         if let value = try? await createEffect(
             componentDescription: componentDescription,
             options: .loadOutOfProcess

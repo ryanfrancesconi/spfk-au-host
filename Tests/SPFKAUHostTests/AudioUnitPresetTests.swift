@@ -210,7 +210,7 @@ struct AudioUnitPresetsTests {
             options: []
         )
 
-        #expect(avAudioUnit.auAudioUnit.supportsUserPresets)
+        #expect(avAudioUnit.auAudioUnit.supportsUserPresets, "is this failing due to sandboxing?")
 
         let presets = avAudioUnit.auAudioUnit.userPresets
         #expect(presets.isNotEmpty)

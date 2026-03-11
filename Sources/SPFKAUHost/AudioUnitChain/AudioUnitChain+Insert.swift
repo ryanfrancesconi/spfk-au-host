@@ -2,29 +2,31 @@
 
 import AVFoundation
 import Foundation
+import SPFKAudioBase
 import SPFKUtils
 
 extension AudioUnitChain {
-    /// Loads a complete effects chain from an array of effect descriptions, replacing any existing effects.
+    /// Loads a complete effects chain from an array of insert DTOs, replacing any existing effects.
     @discardableResult
-    public func load(chainDescription: [AudioEffectDescription]) async throws -> [Error?] {
-        //
-        guard chainDescription.isNotEmpty else {
+    public func load(inserts: [AudioUnitInsertDTO]) async throws -> [Error?] {
+        guard inserts.isNotEmpty else {
             try await removeEffects()
             return []
         }
 
         var errors = await [Error?](repeating: nil, count: data.insertCount)
 
-        for desc in chainDescription {
-            guard let index = desc.index, errors.indices.contains(index) else {
-                Log.error("invalid index in", desc)
+        for insert in inserts {
+            let index = insert.index
+
+            guard errors.indices.contains(index) else {
+                Log.error("invalid index in", insert)
                 continue
             }
 
-            errors[index] = try await insertAudioUnit(effectDescription: desc, reconnectChain: false, at: index)
+            errors[index] = try await insertAudioUnit(from: insert, reconnectChain: false, at: index)
 
-            try await bypassEffect(at: index, isBypassed: desc.isBypassed, reconnectChain: false)
+            try await bypassEffect(at: index, isBypassed: insert.isBypassed, reconnectChain: false)
         }
 
         try await connect()
@@ -32,22 +34,20 @@ extension AudioUnitChain {
         return errors
     }
 
-    /// Inserts an audio unit from an effect description at the given index, applying any saved state.
+    /// Inserts an audio unit from a DTO at the given index, applying any saved state.
     @discardableResult
     public func insertAudioUnit(
-        effectDescription: AudioEffectDescription,
+        from insert: AudioUnitInsertDTO,
         reconnectChain: Bool = true,
         at index: Int
     ) async throws -> Error? {
-        guard let componentDescription = effectDescription.componentDescription else {
+        guard let componentDescription = insert.componentDescription else {
             throw NSError(description: "Failed to create AudioComponentDescription")
         }
 
-        // Insert the AU inside the actor, no AVAudioUnit escapes
         try await insertAudioUnit(componentDescription: componentDescription, at: index)
 
-        // Apply full state internally by index, still within the actor
-        if let fullState = effectDescription.fullStateDictionary {
+        if let fullState = insert.fullStateDictionary {
             if let effect = try await data.effect(at: index) {
                 effect.avAudioUnit.auAudioUnit.fullState = fullState
             }

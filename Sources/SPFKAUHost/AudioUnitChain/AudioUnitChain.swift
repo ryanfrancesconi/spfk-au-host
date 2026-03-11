@@ -35,7 +35,7 @@ public actor AudioUnitChain {
     public internal(set) var isChainBypassed: Bool = false
 
     /// Amount of inserts available in this instance
-    public private(set) var insertCount = AudioUnitChain.defaultInsertCount
+    public internal(set) var insertCount = AudioUnitChain.defaultInsertCount
 
     // MARK: - Initialization
 

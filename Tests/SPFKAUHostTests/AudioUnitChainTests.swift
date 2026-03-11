@@ -39,4 +39,43 @@ final class AudioUnitChainTests: TestCaseModel {
             )
         }
     }
+
+    // MARK: - Chain Resize
+
+    @Test func appendInsert() async throws {
+        let initialCount = await audioUnitChain.data.insertCount
+        await audioUnitChain.appendInsert()
+        let newCount = await audioUnitChain.data.insertCount
+        #expect(newCount == initialCount + 1)
+        let chainInsertCount = await audioUnitChain.insertCount
+        #expect(chainInsertCount == newCount)
+    }
+
+    @Test func removeLastInsert() async throws {
+        await audioUnitChain.appendInsert()
+        let countAfterAppend = await audioUnitChain.data.insertCount
+        try await audioUnitChain.removeLastInsert()
+        let countAfterRemove = await audioUnitChain.data.insertCount
+        #expect(countAfterRemove == countAfterAppend - 1)
+        let chainInsertCount = await audioUnitChain.insertCount
+        #expect(chainInsertCount == countAfterRemove)
+    }
+
+    @Test func removeLastInsertAtMinimumThrows() async {
+        await #expect(throws: (any Error).self) {
+            try await audioUnitChain.removeLastInsert()
+        }
+    }
+
+    @Test func appendThenInsertAtNewIndex() async throws {
+        await audioUnitChain.appendInsert()
+        let newIndex = await audioUnitChain.insertCount - 1
+
+        try await audioUnitChain.insertAudioUnit(
+            componentDescription: AudioUnitTestContent.auDelayDesc, at: newIndex
+        )
+
+        let effect = try await audioUnitChain.data.effect(at: newIndex)
+        #expect(effect != nil)
+    }
 }

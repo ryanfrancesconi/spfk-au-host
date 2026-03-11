@@ -89,6 +89,26 @@ struct AudioUnitChainEventTests {
             Issue.record("Expected effectMoved")
         }
     }
+
+    @Test func didAppendInsert() {
+        let event = AudioUnitChainEvent.didAppendInsert(count: 5)
+
+        if case let .didAppendInsert(count) = event {
+            #expect(count == 5)
+        } else {
+            Issue.record("Expected didAppendInsert")
+        }
+    }
+
+    @Test func didRemoveInsert() {
+        let event = AudioUnitChainEvent.didRemoveInsert(count: 3)
+
+        if case let .didRemoveInsert(count) = event {
+            #expect(count == 3)
+        } else {
+            Issue.record("Expected didRemoveInsert")
+        }
+    }
 }
 
 // MARK: - AudioUnitCacheEvent

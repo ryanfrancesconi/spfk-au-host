@@ -16,4 +16,9 @@ public enum AudioUnitChainEvent: Sendable {
     case didInsert(index: Int)
 
     case effectMoved(from: Int, to: Int)
+
+    /// An empty slot was appended. `count` is the new total insert count.
+    case didAppendInsert(count: Int)
+    /// The last empty slot was removed. `count` is the new total insert count.
+    case didRemoveInsert(count: Int)
 }

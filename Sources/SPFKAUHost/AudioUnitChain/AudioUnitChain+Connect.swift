@@ -60,6 +60,22 @@ extension AudioUnitChain {
         await delegate?.audioUnitChain(self, event: .effectMoved(from: indexA, to: indexB))
     }
 
+    // MARK: - Chain Resize
+
+    /// Appends an empty insert slot to the end of the chain.
+    public func appendInsert() async {
+        await data.appendSlot()
+        insertCount = await data.insertCount
+        await delegate?.audioUnitChain(self, event: .didAppendInsert(count: insertCount))
+    }
+
+    /// Removes the last insert slot if it is empty and the chain is above its minimum size.
+    public func removeLastInsert() async throws {
+        try await data.removeLastSlot()
+        insertCount = await data.insertCount
+        await delegate?.audioUnitChain(self, event: .didRemoveInsert(count: insertCount))
+    }
+
     /// Main effects chain connection method
     /// Called from client to hook the chain together
     /// firstNode would be something like a player, and last something like a mixer that's headed

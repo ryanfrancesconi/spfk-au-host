@@ -12,6 +12,9 @@ public actor AudioUnitChainData {
     /// The fixed-size array of effect slots. `nil` entries are empty slots.
     public private(set) var effectsChain: [AudioUnitDescription?]
 
+    /// The minimum number of slots; the chain cannot shrink below this.
+    public let minimumInsertCount: Int
+
     /// The total number of slots (occupied and empty) in the chain.
     public var insertCount: Int { effectsChain.count }
 
@@ -37,6 +40,7 @@ public actor AudioUnitChainData {
 
     /// Creates a chain data instance with `insertCount` empty slots.
     public init(insertCount: Int) {
+        self.minimumInsertCount = insertCount
         effectsChain = [AudioUnitDescription?](repeating: nil, count: insertCount)
     }
 
@@ -110,6 +114,25 @@ public actor AudioUnitChainData {
         effectsChain[indexB]?.avAudioUnit.auAudioUnit.reset()
 
         effectsChain.swapAt(indexA, indexB)
+    }
+
+    /// Appends one empty slot to the end of the effects chain.
+    public func appendSlot() {
+        effectsChain.append(nil)
+    }
+
+    /// Removes the last slot from the effects chain.
+    /// - Throws: If the last slot is occupied or the chain is already at its minimum size.
+    public func removeLastSlot() throws {
+        guard effectsChain.count > minimumInsertCount else {
+            throw NSError(description: "Cannot remove insert: chain is at minimum size of \(minimumInsertCount)")
+        }
+
+        if let last = effectsChain.last, last != nil {
+            throw NSError(description: "Cannot remove insert: last slot is occupied")
+        }
+
+        effectsChain.removeLast()
     }
 }
 

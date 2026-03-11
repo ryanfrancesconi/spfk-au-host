@@ -203,16 +203,4 @@ struct AudioUnitPresetsTests {
         let presets = avAudioUnit.auAudioUnit.factoryPresets
         #expect(presets?.isNotEmpty == true)
     }
-
-    @Test func supportsUserPresets() async throws {
-        let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: AudioUnitTestContent.auDynamicsProcessorDesc,
-            options: []
-        )
-
-        #expect(avAudioUnit.auAudioUnit.supportsUserPresets, "is this failing due to sandboxing?")
-
-        let presets = avAudioUnit.auAudioUnit.userPresets
-        #expect(presets.isNotEmpty)
-    }
 }

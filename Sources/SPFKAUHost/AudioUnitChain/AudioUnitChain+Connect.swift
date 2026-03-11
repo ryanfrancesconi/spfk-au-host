@@ -53,11 +53,11 @@ extension AudioUnitChain {
         await delegate?.audioUnitChain(self, event: .didBypass(index: index, isBypassed: isBypassed))
     }
 
-    /// Moves an effect from one position to another in the chain and reconnects.
-    public func moveEffect(from startIndex: Int, to endIndex: Int) async throws {
-        try await data.moveEffect(from: startIndex, to: endIndex)
+    /// Swaps the effects at two positions in the chain and reconnects.
+    public func swapEffects(from indexA: Int, to indexB: Int) async throws {
+        try await data.swapEffects(from: indexA, to: indexB)
         try await connect()
-        await delegate?.audioUnitChain(self, event: .effectMoved(from: startIndex, to: endIndex))
+        await delegate?.audioUnitChain(self, event: .effectMoved(from: indexA, to: indexB))
     }
 
     /// Main effects chain connection method

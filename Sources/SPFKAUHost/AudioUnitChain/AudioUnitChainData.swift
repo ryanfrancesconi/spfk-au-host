@@ -101,25 +101,15 @@ public actor AudioUnitChainData {
         effectsChain[index]?.avAudioUnit.auAudioUnit.contextName = string
     }
 
-    /// Moves an effect from one slot to another, preserving its bypass state.
-    public func moveEffect(from startIndex: Int, to endIndex: Int) throws {
-        try check(index: startIndex)
-        try check(index: endIndex)
+    /// Swaps the effects at two slot indices, preserving each effect's bypass state.
+    public func swapEffects(from indexA: Int, to indexB: Int) throws {
+        try check(index: indexA)
+        try check(index: indexB)
 
-        guard let auAudioUnit = effectsChain[startIndex]?.avAudioUnit.auAudioUnit else { return }
+        effectsChain[indexA]?.avAudioUnit.auAudioUnit.reset()
+        effectsChain[indexB]?.avAudioUnit.auAudioUnit.reset()
 
-        let bypassState = effectsChain[startIndex]?.isBypassed == true
-
-        if !bypassState {
-            effectsChain[startIndex]?.isBypassed = true
-        }
-
-        auAudioUnit.reset()
-
-        let element = effectsChain.remove(at: startIndex)
-        effectsChain.insert(element, at: endIndex)
-
-        effectsChain[endIndex]?.isBypassed = bypassState
+        effectsChain.swapAt(indexA, indexB)
     }
 }
 

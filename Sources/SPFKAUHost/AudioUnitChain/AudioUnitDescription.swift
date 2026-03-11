@@ -1,8 +1,8 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
 import AEXML
-import AudioToolbox
 @preconcurrency import AVFoundation
+import AudioToolbox
 import SPFKBase
 
 /// A wrapper for the `AVAudioUnit` to allow an independent bypass property

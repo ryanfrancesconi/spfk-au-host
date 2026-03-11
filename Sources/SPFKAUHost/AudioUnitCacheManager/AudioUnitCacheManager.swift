@@ -13,10 +13,19 @@ public actor AudioUnitCacheManager {
         self.delegate = delegate
     }
 
-    /// Where it writes its cache file. Can be set to an alternate directory for testing.
+    /// Where it writes its cache file. Can be set to an alternate directory for testing. `nil` by default.
     public var cachesDirectory: URL?
+
     /// Updates the directory used for writing the cache file.
     public func update(cachesDirectory: URL) {
+        if !cachesDirectory.exists {
+            do {
+                try cachesDirectory.createDirectory()
+            } catch {
+                Log.fault(error)
+            }
+        }
+
         self.cachesDirectory = cachesDirectory
     }
 

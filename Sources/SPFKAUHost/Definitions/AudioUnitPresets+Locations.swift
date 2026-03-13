@@ -4,6 +4,7 @@ import AEXML
 import AudioToolbox
 @preconcurrency import AVFoundation
 import Foundation
+import SPFKBase
 import SPFKUtils
 
 #if os(macOS)

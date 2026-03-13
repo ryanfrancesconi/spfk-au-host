@@ -3,6 +3,7 @@
 import AVFoundation
 import Foundation
 import SPFKAudioBase
+import SPFKBase
 import SPFKUtils
 
 extension AudioUnitChain {

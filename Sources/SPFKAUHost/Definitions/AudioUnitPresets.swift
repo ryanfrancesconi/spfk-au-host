@@ -4,6 +4,7 @@ import AEXML
 import AudioToolbox
 @preconcurrency import AVFoundation
 import Foundation
+import SPFKBase
 import SPFKUtils
 
 /// Manages loading and locating audio unit presets, including user presets on disk.

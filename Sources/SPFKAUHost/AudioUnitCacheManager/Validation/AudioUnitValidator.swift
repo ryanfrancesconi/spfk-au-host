@@ -2,6 +2,7 @@
 
 @preconcurrency import AudioToolbox
 import AVFoundation
+import SPFKBase
 import SPFKUtils
 
 /// Validates Audio Unit components using system APIs and optional external tools.

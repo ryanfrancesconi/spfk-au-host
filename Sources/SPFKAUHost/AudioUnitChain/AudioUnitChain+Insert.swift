@@ -9,7 +9,7 @@ import SPFKUtils
 extension AudioUnitChain {
     /// Loads a complete effects chain from an array of insert DTOs, replacing any existing effects.
     @discardableResult
-    public func load(inserts: [AudioUnitInsertDTO]) async throws -> [Error?] {
+    public func load(inserts: [AudioUnitInsert]) async throws -> [Error?] {
         guard inserts.isNotEmpty else {
             try await removeEffects()
             return []
@@ -38,7 +38,7 @@ extension AudioUnitChain {
     /// Inserts an audio unit from a DTO at the given index, applying any saved state.
     @discardableResult
     public func insertAudioUnit(
-        from insert: AudioUnitInsertDTO,
+        from insert: AudioUnitInsert,
         reconnectChain: Bool = true,
         at index: Int
     ) async throws -> Error? {

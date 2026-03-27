@@ -111,12 +111,17 @@ public actor AudioUnitCacheManager {
 
         let components = Self.compatibleComponents
         _cachedCompatibleComponents = components
+
+        Log.debug("_cachedCompatibleComponents = \(components.count) AUs")
+
         return components
     }
 
     /// Invalidates the cached compatible components, forcing a fresh query on next access.
     func invalidateCachedComponents() {
         _cachedCompatibleComponents = nil
+
+        Log.debug("_cachedCompatibleComponents = nil")
     }
 
     /// A textual description of all compatible Audio Units and the cache file path.

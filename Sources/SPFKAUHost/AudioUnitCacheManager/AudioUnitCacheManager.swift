@@ -205,10 +205,25 @@ public actor AudioUnitCacheManager {
 
         await send(event: .cacheLoaded(systemComponentsResponse))
 
-        cacheObservation.eventHandler = { [weak self] _ in
+        cacheObservation.eventHandler = { [weak self] event in
             guard let self else { return }
             Task {
                 await self.invalidateCachedComponents()
+
+                guard case .componentRegistrationsChanged = event else { return }
+                
+                Log.debug("*AU observed: componentRegistrationsChanged event *")
+
+                guard await !self.isScanning else {
+                    Log.debug("*AU component change detected but scan already in progress, skipping")
+                    return
+                }
+
+                do {
+                    try await self.createCache()
+                } catch {
+                    Log.error(error)
+                }
             }
         }
 

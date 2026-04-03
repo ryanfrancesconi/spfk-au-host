@@ -13,4 +13,7 @@ public enum AudioUnitCacheEvent: Sendable {
 
     /// Cache is loaded from disk
     case cacheLoaded(SystemComponentsResponse)
+
+    /// An error occurred that the user should be notified about
+    case error(String)
 }

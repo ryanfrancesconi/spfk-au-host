@@ -23,6 +23,7 @@ public actor AudioUnitCacheManager {
                 try cachesDirectory.createDirectory()
             } catch {
                 Log.fault(error)
+                Task { await send(event: .error(error.localizedDescription)) }
             }
         }
 
@@ -223,6 +224,7 @@ public actor AudioUnitCacheManager {
                     try await self.createCache()
                 } catch {
                     Log.error(error)
+                    await self.send(event: .error(error.localizedDescription))
                 }
             }
         }

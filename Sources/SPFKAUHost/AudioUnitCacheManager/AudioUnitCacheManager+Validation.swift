@@ -99,6 +99,7 @@ extension AudioUnitCacheManager {
                     try Task.checkCancellation()
 
                     results.append(result)
+
                     completedCount += 1
 
                     await self.send(event: .validating(

@@ -32,7 +32,7 @@ public enum AudioUnitPresetStorage {
             audioUnitName: audioUnitName,
             baseDirectory: baseDirectory
         )
-        let fileURL = directory.appendingPathComponent(sanitizedFileName(name))
+        let fileURL = directory.appendingPathComponent(sanatize(filename: name))
 
         let data = try PropertyListSerialization.data(
             fromPropertyList: fullState,
@@ -59,7 +59,7 @@ public enum AudioUnitPresetStorage {
         let directory = baseDirectory
             .appendingPathComponent(manufacturer)
             .appendingPathComponent(audioUnitName)
-        let fileURL = directory.appendingPathComponent(sanitizedFileName(name))
+        let fileURL = directory.appendingPathComponent(sanatize(filename: name))
 
         let data = try Data(contentsOf: fileURL)
 
@@ -89,7 +89,7 @@ public enum AudioUnitPresetStorage {
         let directory = baseDirectory
             .appendingPathComponent(manufacturer)
             .appendingPathComponent(audioUnitName)
-        let fileURL = directory.appendingPathComponent(sanitizedFileName(name))
+        let fileURL = directory.appendingPathComponent(sanatize(filename: name))
 
         try FileManager.default.removeItem(at: fileURL)
     }
@@ -145,8 +145,8 @@ public enum AudioUnitPresetStorage {
 
     // MARK: - Private
 
-    private static func sanitizedFileName(_ name: String) -> String {
-        let sanitized = name
+    private static func sanatize(filename: String) -> String {
+        let sanitized = filename
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: ":", with: "_")
         return sanitized + ".aupreset"

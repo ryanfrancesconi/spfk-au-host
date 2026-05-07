@@ -66,8 +66,15 @@ extension AudioUnitCacheManager {
     private func parse(cache collection: CachedAudioUnitCollection) -> SystemComponentsResponse {
         cachedComponentUIDs = Set(collection.cachedComponentUIDs)
 
+        // Build a UID → component map once so parse(cacheItem:) doesn't call
+        // AVAudioUnitComponentManager.components(matching:) once per cached AU.
+        let componentsByUID = Dictionary(
+            cachedCompatibleComponents().map { ($0.audioComponentDescription.uid, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
         var results = collection.audioUnits.compactMap { item in
-            parse(cacheItem: item)
+            parse(cacheItem: item, componentsByUID: componentsByUID)
         }
 
         results.sort { $0.manufacturerName < $1.manufacturerName }
@@ -75,7 +82,7 @@ extension AudioUnitCacheManager {
         return SystemComponentsResponse(results: results)
     }
 
-    private func parse(cacheItem item: CachedAudioUnit) -> ComponentValidationResult? {
+    private func parse(cacheItem item: CachedAudioUnit, componentsByUID: [String: AVAudioUnitComponent]) -> ComponentValidationResult? {
         let audioComponentDescription = AudioComponentDescription(
             componentType: item.componentType,
             componentSubType: item.componentSubType,
@@ -86,12 +93,8 @@ extension AudioUnitCacheManager {
 
         var component: AVAudioUnitComponent?
 
-        if item.isEnabled,
-           let avComponent = AVAudioUnitComponentManager.shared()
-           .components(matching: audioComponentDescription)
-           .first
-        {
-            component = avComponent
+        if item.isEnabled {
+            component = componentsByUID[audioComponentDescription.uid]
         }
 
         var validationResult: AudioComponentValidationResult?

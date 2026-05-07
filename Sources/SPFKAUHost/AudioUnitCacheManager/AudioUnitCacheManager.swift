@@ -182,22 +182,7 @@ public actor AudioUnitCacheManager {
         // request plugins
         Log.debug("*AU Loading cached Audio Units...")
 
-        let loadTask = Task<SystemComponentsResponse, Error> {
-            try await loadCache()
-        }
-
-        let result = await loadTask.result
-        let systemComponentsResponse: SystemComponentsResponse
-
-        switch result {
-        case let .success(value):
-            systemComponentsResponse = value
-
-        case let .failure(error):
-            Log.error(error)
-
-            throw error
-        }
+        let systemComponentsResponse = try await loadCache()
 
         let componentCollection = ComponentCollection(results: systemComponentsResponse.results)
         self.componentCollection = componentCollection

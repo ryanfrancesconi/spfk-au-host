@@ -14,13 +14,12 @@ public struct ComponentCollection: Sendable {
     /// All validation results in this collection.
     public var validationResults: [ComponentValidationResult]
 
-    /// Validation results that passed and are format-compatible, sorted by description.
+    /// Validation results that passed and are format-compatible, sorted by name.
     public var passedEffects: [ComponentValidationResult] {
         validationResults.filter {
             $0.validation.result == .passed && $0.isFormatCompatible
-
         }.sorted { lhs, rhs in
-            lhs.description < rhs.description
+            lhs.name < rhs.name
         }
     }
 

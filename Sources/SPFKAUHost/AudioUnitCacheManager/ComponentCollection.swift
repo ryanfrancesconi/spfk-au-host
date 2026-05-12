@@ -51,7 +51,11 @@ public struct ComponentCollection: Sendable {
             return text
         }
 
+        #if os(macOS)
         var text = HardwareInfo.description
+        #else
+        var text = ""
+        #endif
 
         let passedEffects = passedEffects
         let failedEffects = failedEffects

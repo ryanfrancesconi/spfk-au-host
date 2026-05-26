@@ -130,7 +130,7 @@ extension AudioUnitCacheManager {
         allowedDescriptions: [AudioComponentDescription]
     ) async -> ComponentValidationResult {
         guard shouldValidate(audioComponentDescription: component.audioComponentDescription) else {
-            Log.debug("* Skipping", component.name)
+            Log.debug("* Skipping", component.name, " - Doesn't need validation.")
 
             return ComponentValidationResult(
                 audioComponentDescription: component.audioComponentDescription,

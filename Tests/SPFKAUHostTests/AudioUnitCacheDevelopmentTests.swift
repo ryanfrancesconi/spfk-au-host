@@ -14,7 +14,8 @@ import Testing
 final class AudioUnitCacheDevelopmentTests: BinTestCase, @unchecked Sendable {
     lazy var manager = AudioUnitCacheManager(cachesDirectory: bin)
 
-    @Test(.disabled("this takes some time so best not to include in automated runs"))
+    //@Test(.disabled("this takes some time so best not to include in automated runs"))
+    @Test
     func createCache() async throws {
         deleteBinOnExit = false
 

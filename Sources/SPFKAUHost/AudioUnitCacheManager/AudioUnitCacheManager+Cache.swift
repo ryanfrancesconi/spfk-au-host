@@ -153,6 +153,11 @@ extension AudioUnitCacheManager {
         try await writeCache()
 
         await send(event: .cacheUpdated)
+
+        let failed = componentCollection?.failedEffects ?? []
+        if !failed.isEmpty {
+            await send(event: .validationComplete(failed: failed))
+        }
     }
 
     // MARK: - Writing

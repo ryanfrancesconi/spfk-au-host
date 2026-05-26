@@ -41,7 +41,7 @@ struct ShouldValidateTests {
         let desc = AudioComponentDescription(
             componentType: kAudioUnitType_Effect,
             componentSubType: 0,
-            componentManufacturer: 0x12345678,
+            componentManufacturer: 0x1234_5678,
             componentFlags: 0,
             componentFlagsMask: 0
         )
@@ -200,19 +200,6 @@ struct AudioUnitValidatorTests {
         if let cachedResult {
             #expect(cachedResult == .passed)
         }
-    }
-
-    @Test func validateLegacyAppleComponentPasses() async throws {
-        guard let component = AVAudioUnitComponentManager.shared()
-            .components(matching: Self.auDelayDesc).first
-        else {
-            Issue.record("AUDelay not found on system")
-            return
-        }
-
-        let result = await AudioUnitValidator.validateLegacy(component: component)
-
-        #expect(result.result == .passed)
     }
 
     @Test func validationResultInit() {

@@ -182,6 +182,11 @@ public actor AudioUnitCacheManager {
         // request plugins
         Log.debug("*AU Loading cached Audio Units...")
 
+        // Use defer so observation always starts after loadCache() regardless of success or
+        // failure. Starting it before loadCache() caused audio-engine init notifications
+        // (componentRegistrationsChanged) to trigger a spurious full rescan on every launch.
+        defer { startObservation() }
+
         let systemComponentsResponse = try await loadCache()
 
         let componentCollection = ComponentCollection(results: systemComponentsResponse.results)
@@ -190,14 +195,16 @@ public actor AudioUnitCacheManager {
         Log.debug("*AU \(systemComponentsResponse.results.count) Effects are available now.")
 
         await send(event: .cacheLoaded(systemComponentsResponse))
+    }
 
+    private func startObservation() {
         cacheObservation.eventHandler = { [weak self] event in
             guard let self else { return }
             Task {
                 await self.invalidateCachedComponents()
 
                 guard case .componentRegistrationsChanged = event else { return }
-                
+
                 Log.debug("*AU observed: componentRegistrationsChanged event *")
 
                 guard await !self.isScanning else {

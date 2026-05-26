@@ -59,52 +59,24 @@ public class AudioUnitValidator {
 
         // note component.passesAUVal causes some AUs to hang indefinitely here
 
-        let result: ValidationResult =
-            if #available(macOS 13.0, iOS 16.0, *) {
-                await validateWithResults(component: component)
-
-            } else {
-                await validateLegacy(component: component)
-            }
+        let result = await validateWithResults(component: component)
 
         if result.result == .passed {
             return ValidationResult(result: .passed)
         }
 
         #if os(macOS)
+            // If the system API already timed out, external validation will also hang — return the timeout result directly.
+            guard result.result != .timedOut else { return result }
             return await validateExternal(component: component)
         #else
             return result
         #endif
     }
 
-    /// Wraps the synchronous AudioComponentValidate C API off the cooperative thread pool
-    /// using a GCD dispatch to avoid blocking Swift Concurrency threads.
-    static func validateLegacy(component: AVAudioUnitComponent) async -> ValidationResult {
-        nonisolated(unsafe) let audioComponent = component.audioComponent
-        let params = validateParams
-
-        return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                var result: AudioComponentValidationResult = .unknown
-
-                let status = AudioComponentValidate(audioComponent, params, &result)
-
-                guard status == noErr else {
-                    Log.error("*AU AudioComponentValidate error", status.fourCC)
-                    continuation.resume(returning: ValidationResult(result: .failed, output: nil))
-                    return
-                }
-
-                continuation.resume(returning: ValidationResult(result: result))
-            }
-        }
-    }
-
-    /// Uses the modern AudioComponentValidateWithResults API with a checked continuation
-    /// instead of a DispatchSemaphore. The timeout is handled by kAudioComponentValidationParameter_TimeOut
-    /// in the params dictionary, which guarantees the callback fires.
-    @available(macOS 13.0, iOS 16.0, *)
+    /// Uses AudioComponentValidateWithResults with a checked continuation.
+    /// The timeout is handled by kAudioComponentValidationParameter_TimeOut in the params dictionary,
+    /// which guarantees the callback fires within 15 seconds.
     static func validateWithResults(component: AVAudioUnitComponent) async -> ValidationResult {
         await withCheckedContinuation { continuation in
             AudioComponentValidateWithResults(component.audioComponent, validateParams) { result, _ in
@@ -149,10 +121,6 @@ public class AudioUnitValidator {
             ].compactMap(\.self)
 
             let name = component.name
-
-            Log.default(
-                "*AU validateExternal \(name):", cmd.lastPathComponent + " " + args.joined(separator: " ")
-            )
 
             return await withCheckedContinuation { continuation in
                 DispatchQueue.global(qos: .userInitiated).async {

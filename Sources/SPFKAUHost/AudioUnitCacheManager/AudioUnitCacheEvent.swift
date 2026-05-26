@@ -16,4 +16,7 @@ public enum AudioUnitCacheEvent: Sendable {
 
     /// An error occurred that the user should be notified about
     case error(String)
+
+    /// Emitted after a full validation scan completes if any components failed validation.
+    case validationComplete(failed: [ComponentValidationResult])
 }

@@ -82,7 +82,7 @@ public struct ComponentCollection: Sendable {
             }
         }
 
-        #if macOS
+        #if os(macOS)
             if unavailableEffects.isNotEmpty {
                 let incompatibleEffects = unavailableEffects.filter(\.supportsStereo)
 

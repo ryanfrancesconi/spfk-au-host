@@ -28,7 +28,7 @@ extension AudioUnitChain {
             return value
         }
 
-        #if macOS
+        #if os(macOS)
             let options: AudioComponentInstantiationOptions = .loadInProcess
 
         #else

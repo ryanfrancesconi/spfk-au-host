@@ -15,6 +15,7 @@ public class AudioUnitValidator {
         public var output: String?
     }
 
+    // kAudioComponentValidationParameter_ForceValidation: true
     private static var validateParams: CFDictionary {
         [
             kAudioComponentValidationParameter_LoadOutOfProcess: 1,

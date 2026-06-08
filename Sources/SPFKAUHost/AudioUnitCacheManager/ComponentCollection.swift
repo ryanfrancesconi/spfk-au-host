@@ -110,12 +110,9 @@ public struct ComponentCollection: Sendable {
         }.removingDuplicatesRandomOrdering().sorted()
     }
 
-    /// Creates a collection from the given validation results, filtering out Spongefork components.
+    /// Creates a collection from the given validation results.
     public init(results: [ComponentValidationResult]) {
-        validationResults = results.filter {
-            $0.audioComponentDescription.componentManufacturer !=
-                kAudioUnitManufacturer_Spongefork
-        }
+        validationResults = results
     }
 
     /// Updates the enabled state for all results matching the given audio component description.

@@ -45,15 +45,12 @@ extension AudioUnitCacheManager {
         let components = AVAudioUnitComponentManager
             .shared()
             .components(matching: predicate)
-            .filter {
-                $0.audioComponentDescription.componentManufacturer !=
-                    kAudioUnitManufacturer_Spongefork
-            }
 
         return components.removingDuplicatesRandomOrdering()
     }
 
-    /// Returns whether the given component description requires validation (excludes Apple and Spongefork components).
+    /// Returns whether the given component description requires validation (excludes Apple components).
+    /// Spongefork components auto-pass so that `auval` warnings from the lowercase manufacturer code don't surface.
     public static func shouldValidate(audioComponentDescription: AudioComponentDescription) -> Bool {
         let manufacturer = audioComponentDescription.componentManufacturer
 

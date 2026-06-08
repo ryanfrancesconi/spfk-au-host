@@ -213,7 +213,7 @@ public actor AudioUnitCacheManager {
                 }
 
                 do {
-                    try await self.createCache()
+                    try await self.updateCache()
                 } catch {
                     Log.error(error)
                     await self.send(event: .error(error.localizedDescription))

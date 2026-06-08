@@ -141,4 +141,16 @@ public struct ComponentCollection: Sendable {
             update(audioComponentDescription: item.audioComponentDescription, isEnabled: item.isEnabled)
         }
     }
+
+    /// Removes all entries whose UID matches any value in the given set.
+    public mutating func remove(uids: Set<String>) {
+        validationResults.removeAll { uids.contains($0.audioComponentDescription.uid) }
+    }
+
+    /// Inserts a result, replacing any existing entry with the same UID.
+    public mutating func insert(result: ComponentValidationResult) {
+        let uid = result.audioComponentDescription.uid
+        validationResults.removeAll { $0.audioComponentDescription.uid == uid }
+        validationResults.append(result)
+    }
 }

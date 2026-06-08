@@ -209,6 +209,57 @@ extension AudioUnitCacheManager {
         Log.debug("*AU Wrote cache to", cacheURL)
     }
 
+    // MARK: - Incremental Update
+
+    /// Incrementally updates the cache after a componentRegistrationsChanged event.
+    /// Validates only newly added components and removes stale entries, avoiding a full rescan.
+    func updateCache() async throws {
+        let freshComponents = cachedCompatibleComponents()
+        let systemUIDs = Set(freshComponents.map(\.audioComponentDescription.uid))
+
+        guard systemUIDs != cachedComponentUIDs else {
+            Log.debug("*AU componentRegistrationsChanged: no net change, skipping rescan")
+            return
+        }
+
+        let previousUIDs = cachedComponentUIDs ?? []
+        let newUIDs = systemUIDs.subtracting(previousUIDs)
+        let removedUIDs = previousUIDs.subtracting(systemUIDs)
+
+        // Mutate a local copy; componentCollection setter is private to its defining file
+        var updated = componentCollection
+
+        if !removedUIDs.isEmpty {
+            updated?.remove(uids: removedUIDs)
+            Log.debug("*AU removed \(removedUIDs.count) stale AU(s)")
+        }
+
+        if !newUIDs.isEmpty {
+            let newComponents = freshComponents.filter { newUIDs.contains($0.audioComponentDescription.uid) }
+            Log.debug("*AU validating \(newComponents.count) new AU(s)")
+
+            if newComponents.count > 1 {
+                await send(event: .cachingStarted)
+            }
+
+            let newResults = try await validate(components: newComponents)
+            for result in newResults {
+                updated?.insert(result: result)
+            }
+        }
+
+        update(componentCollection: updated)
+        cachedComponentUIDs = systemUIDs
+
+        try await writeCache()
+        await send(event: .cacheUpdated)
+
+        let failed = componentCollection?.failedEffects ?? []
+        if !failed.isEmpty {
+            await send(event: .validationComplete(failed: failed))
+        }
+    }
+
     func removeCache() {
         guard let cacheURL, cacheURL.exists else { return }
 

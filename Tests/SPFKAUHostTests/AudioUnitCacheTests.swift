@@ -309,6 +309,98 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         try await tearDown()
     }
 
+    // MARK: - Incremental Update
+
+    @Test func updateCacheNoOpWhenUIDsUnchanged() async throws {
+        await manager.update(delegate: self)
+        await manager.update(cacheURL: nil)
+
+        let systemUIDs = AudioUnitCacheManager.compatibleComponents
+            .map(\.audioComponentDescription.uid)
+            .sorted()
+
+        let cacheURL = bin.appendingPathComponent("AudioUnitCache.json")
+        let json = """
+        {
+            "cachedComponentUIDs": \(jsonArray(systemUIDs)),
+            "audioUnits": []
+        }
+        """
+        try json.write(to: cacheURL, atomically: true, encoding: .utf8)
+        await manager.update(cacheURL: cacheURL)
+        _ = try await manager.loadCache()
+
+        await manager.update(componentCollection: ComponentCollection(results: []))
+
+        // updateCache should detect no net change and return early
+        try await manager.updateCache()
+
+        // Collection must be untouched (still empty)
+        let collection = await manager.componentCollection
+        #expect(collection?.isEmpty == true)
+
+        // writeCache was skipped: the file should still contain the original content
+        let fileContent = try String(contentsOf: cacheURL, encoding: .utf8)
+        #expect(fileContent.contains("\"cachedComponentUIDs\""))
+        #expect(!fileContent.contains("\"prettyPrinted\"")) // JSONEncoder output marker absent
+
+        try await tearDown()
+    }
+
+    @Test func updateCacheRemovesStaleEntry() async throws {
+        await manager.update(delegate: self)
+        await manager.update(cacheURL: nil)
+
+        // Fake UID built from known 32-bit constants whose hex encodes cleanly
+        // componentType=0x61756678 ("aufx"), subType=0xDEADBEEF, mfr=0xCAFEBABE
+        let fakeUID = "61756678deadbeefcafebabe"
+
+        let systemUIDs = AudioUnitCacheManager.compatibleComponents
+            .map(\.audioComponentDescription.uid)
+            .sorted()
+        let allUIDs = (systemUIDs + [fakeUID]).sorted()
+
+        let cacheURL = bin.appendingPathComponent("AudioUnitCache.json")
+        let json = """
+        {
+            "cachedComponentUIDs": \(jsonArray(allUIDs)),
+            "audioUnits": []
+        }
+        """
+        try json.write(to: cacheURL, atomically: true, encoding: .utf8)
+        await manager.update(cacheURL: cacheURL)
+        _ = try await manager.loadCache()
+
+        let fakeDesc = AudioComponentDescription(
+            componentType: 0x61756678,
+            componentSubType: 0xDEADBEEF,
+            componentManufacturer: 0xCAFEBABE,
+            componentFlags: 0,
+            componentFlagsMask: 0
+        )
+        let fakeResult = ComponentValidationResult(
+            audioComponentDescription: fakeDesc,
+            validation: AudioUnitValidator.ValidationResult(result: .passed),
+            name: "StaleAU",
+            typeName: "Effect",
+            manufacturerName: "Fake",
+            versionString: "1.0"
+        )
+        await manager.update(componentCollection: ComponentCollection(results: [fakeResult]))
+
+        try await manager.updateCache()
+
+        let collection = await manager.componentCollection
+        let stale = collection?.validationResults.first { $0.audioComponentDescription.uid == fakeUID }
+        #expect(stale == nil)
+
+        // cachedComponentUIDs must now match the real system (fake UID evicted)
+        let uids = await manager.cachedComponentUIDs
+        #expect(uids?.contains(fakeUID) == false)
+
+        try await tearDown()
+    }
+
     // MARK: - Helpers
 
     private func jsonArray(_ values: [String]) -> String {

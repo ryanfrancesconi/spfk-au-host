@@ -161,15 +161,11 @@ extension AudioUnitChainData {
     /// then allocates render resources if needed.
     public func update(hostAUState: HostAUState) async {
         for au in unbypassedAUAudioUnits {
-            if au.musicalContextBlock == nil {
-                Log.debug("*AU Setting musicalContextBlock for", au.audioUnitName)
-                au.musicalContextBlock = hostAUState.musicalContextBlock
-            }
+            Log.debug("*AU Setting musicalContextBlock for", au.audioUnitName)
+            au.musicalContextBlock = hostAUState.musicalContextBlock
 
-            if au.transportStateBlock == nil {
-                Log.debug("*AU Setting transportStateBlock for", au.audioUnitName)
-                au.transportStateBlock = hostAUState.transportStateBlock
-            }
+            Log.debug("*AU Setting transportStateBlock for", au.audioUnitName)
+            au.transportStateBlock = hostAUState.transportStateBlock
         }
 
         await allocateRenderResourcesIfNeeded()

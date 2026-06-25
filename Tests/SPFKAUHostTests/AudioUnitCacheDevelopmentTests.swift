@@ -17,7 +17,7 @@ final class AudioUnitCacheDevelopmentTests: BinTestCase, @unchecked Sendable {
     //@Test(.disabled("this takes some time so best not to include in automated runs"))
     @Test
     func createCache() async throws {
-        deleteBinOnExit = false
+        deleteBinOnExit = true
 
         await manager.update(delegate: self)
         await manager.update(cacheURL: nil) // updates to default

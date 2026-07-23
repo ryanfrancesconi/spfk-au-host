@@ -10,7 +10,7 @@ import Testing
 
 @testable import SPFKAUHost
 
-@Suite(.serialized, .tags(.file))
+@Suite(.tags(.file))
 final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
     lazy var manager = AudioUnitCacheManager(cachesDirectory: bin)
 

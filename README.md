@@ -9,7 +9,7 @@ Audio Unit (v3) hosting, validation, caching, and effects chain management for m
 
 - **Effects Chain** — Actor-based `AudioUnitChain` for loading, connecting, bypassing, reordering, and removing Audio Units in a serial chain between input and output nodes
 - **Component Caching** — XML-based cache system (`AudioUnitCacheManager`) for persisting validated Audio Unit component state across sessions
-- **Component Validation** — Multi-strategy validation pipeline using `AudioComponentValidate`, `AudioComponentValidateWithResults` (macOS 13+/iOS 16+), and external `auval`/`auvaltool` fallback (macOS only)
+- **Component Validation** — Multi-strategy validation pipeline using `AudioComponentValidateWithResults` (macOS 13+/iOS 16+), and external `auval`/`auvaltool` fallback (macOS only)
 - **Preset Management** — Factory preset loading via AudioToolbox APIs and user preset discovery from the `~/Library/Audio/Presets` hierarchy (macOS only)
 - **Full State Persistence** — Plist-based serialization and restoration of Audio Unit full state dictionaries for project save/load
 - **Host Musical Context** — Tempo, time signature, beat position, and transport state blocks for AUs that need host timing information
@@ -17,49 +17,6 @@ Audio Unit (v3) hosting, validation, caching, and effects chain management for m
 - **Sendable Component Wrapper** — `S_AVAudioUnitComponent` copies all relevant properties from `AVAudioUnitComponent` into a `Sendable` struct for safe cross-isolation use
 - **Engine Abstraction** — `AudioEngineConnection` protocol decouples chain connection logic from `AVAudioEngine`, allowing the host to provide its own node attachment strategy
 - **Component Observation** — Real-time notifications for Audio Unit registration changes and component invalidation (plugin crash detection)
-
-
-## Architecture
-
-```
-SPFKAUHost
-  |-- AudioUnitChain                Actor-based effects chain manager
-  |   |-- AudioUnitChain+Connect    Connection, bypass, move, remove operations
-  |   |-- AudioUnitChain+Insert     Insert, load chain description, AU instantiation
-  |   |-- AudioUnitChain+Instantiate  Out-of-process/in-process effect and instrument creation
-  |   |-- AudioUnitChainData        Actor holding the effects slot array and state
-  |   |-- AudioUnitChainDelegate    Protocol combining AudioEngineConnection + AudioUnitAvailability
-  |   |-- AudioUnitChainEvent       Events: insert, remove, bypass, move, connection error
-  |   |-- AudioUnitDescription      AVAudioUnit wrapper with independent bypass flag
-  |
-  |-- AudioUnitCacheManager         Actor managing AU cache lifecycle
-  |   |-- +Cache                    XML cache read/write/parse/remove
-  |   |-- +Validation               System component discovery and validation pipeline
-  |   |-- AudioUnitCacheEvent       Events: caching started, updated, loaded, validating
-  |   |-- AudioUnitCacheObservation  NotificationCenter observer for component changes
-  |   |-- ComponentCollection       Filtered views: passed, failed, unavailable effects
-  |   |-- SystemComponentsResponse  Validation results container
-  |   |-- Validation/
-  |       |-- AudioUnitValidator    Multi-strategy validator (API, async, external auval)
-  |       |-- ComponentValidationResult  Per-component validation state and metadata
-  |
-  |-- Definitions
-  |   |-- AudioUnitManufacturerCollection  Manufacturer-grouped component hierarchy
-  |   |-- AudioUnitPresets           Factory and user preset loading and full state I/O
-  |   |-- AudioUnitStateNotifier    Parameter change notification via AudioToolbox
-  |   |-- HostAUState               Musical context + transport state block provider
-  |   |-- HostMusicalContext         Tempo, time signature, beat position
-  |   |-- HostTransportState         Transport flags, sample position, cycle boundaries
-  |   |-- S_AVAudioUnitComponent     Sendable copy of AVAudioUnitComponent properties
-  |
-  |-- Protocols
-  |   |-- AudioEngineConnection      Node attach/connect abstraction
-  |   |-- AudioEngineNode            Input/output node, bypass, detach, format access
-  |   |-- AudioUnitAvailability      Available components and manufacturer collections
-  |
-  |-- Tests
-      |-- TestAudioUnitContent       Mock delegate for unit testing without AVAudioEngine
-```
 
 ## Usage
 
@@ -157,6 +114,7 @@ struct MyEngine: AudioEngineConnection {
 
 | Package | Description |
 |---|---|
+| [SPFKAudioBase](https://github.com/ryanfrancesconi/spfk-audio-base) | Shared audio type definitions |
 | [SPFKUtils](https://github.com/ryanfrancesconi/spfk-utils) | Plist utilities, process handling, and audio extensions |
 | [SPFKTesting](https://github.com/ryanfrancesconi/spfk-testing) | Test case base classes (test target only) |
 
@@ -164,7 +122,7 @@ struct MyEngine: AudioEngineConnection {
 
 Most functionality is cross-platform. The following features are macOS-only:
 
-- **External `auval` validation** — Falls back to `AudioComponentValidate` API results on iOS
+- **External `auval` validation** — Falls back to `AudioComponentValidateWithResults` API results on iOS
 - **User preset discovery** — `AudioUnitPresets.Locations` and `~/Library/Audio/Presets` browsing are unavailable on iOS; factory preset loading and full state persistence work on both platforms
 
 ## Requirements

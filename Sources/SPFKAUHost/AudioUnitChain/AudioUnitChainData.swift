@@ -157,8 +157,11 @@ extension AudioUnitChainData {
         }
     }
 
-    /// Assigns host musical context and transport state blocks to all unbypassed AUs,
-    /// then allocates render resources if needed.
+    /// Assigns host musical context and transport state blocks to all unbypassed AUs.
+    ///
+    /// Allocation is `connect`'s job and must stay there: an `AUAudioUnit` with render resources
+    /// allocated rejects a bus format change with `kAudioUnitErr_PropertyNotWritable`, so
+    /// allocating before the graph connection fails the connection.
     public func update(hostAUState: HostAUState) async {
         for au in unbypassedAUAudioUnits {
             Log.debug("*AU Setting musicalContextBlock for", au.audioUnitName)
@@ -167,8 +170,6 @@ extension AudioUnitChainData {
             Log.debug("*AU Setting transportStateBlock for", au.audioUnitName)
             au.transportStateBlock = hostAUState.transportStateBlock
         }
-
-        await allocateRenderResourcesIfNeeded()
     }
 }
 

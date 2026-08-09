@@ -48,9 +48,15 @@ public struct AudioUnitDescription: Equatable, Sendable {
     }
 
     /// Releases resources by clearing context blocks and detaching the audio unit from the engine.
+    ///
+    /// A bypassed insert is never connected, so it has no engine to detach from. Throwing there
+    /// aborts `AudioUnitChainData.removeAll()` and leaves every later slot attached.
     public func dispose() throws {
         avAudioUnit.auAudioUnit.musicalContextBlock = nil
         avAudioUnit.auAudioUnit.transportStateBlock = nil
+
+        guard avAudioUnit.engine != nil else { return }
+
         try avAudioUnit.detach()
     }
 }

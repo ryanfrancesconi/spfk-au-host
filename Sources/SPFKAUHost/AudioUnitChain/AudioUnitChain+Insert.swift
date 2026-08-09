@@ -8,6 +8,10 @@ import SPFKUtils
 
 extension AudioUnitChain {
     /// Loads a complete effects chain from an array of insert DTOs, replacing any existing effects.
+    ///
+    /// A slot that fails to load is left empty and reported at its index in the returned array;
+    /// the remaining slots are still loaded. A plugin that refuses to instantiate at the current
+    /// sample rate must not take the rest of the chain with it.
     @discardableResult
     public func load(inserts: [AudioUnitInsert]) async throws -> [Error?] {
         guard inserts.isNotEmpty else {
@@ -25,9 +29,15 @@ extension AudioUnitChain {
                 continue
             }
 
-            errors[index] = try await insertAudioUnit(from: insert, reconnectChain: false, at: index)
+            do {
+                try await insertAudioUnit(from: insert, reconnectChain: false, at: index)
+                try await bypassEffect(at: index, isBypassed: insert.isBypassed, reconnectChain: false)
 
-            try await bypassEffect(at: index, isBypassed: insert.isBypassed, reconnectChain: false)
+            } catch {
+                Log.error("Failed to load \(insert.name ?? insert.uid) at index \(index):", error)
+                errors[index] = error
+                await delegate?.audioUnitChain(self, event: .restoreFailed(index: index, error: error))
+            }
         }
 
         try await connect()
@@ -36,25 +46,26 @@ extension AudioUnitChain {
     }
 
     /// Inserts an audio unit from a DTO at the given index, applying any saved state.
-    @discardableResult
     public func insertAudioUnit(
         from insert: AudioUnitInsert,
         reconnectChain: Bool = true,
         at index: Int
-    ) async throws -> Error? {
+    ) async throws {
         guard let componentDescription = insert.componentDescription else {
             throw NSError(description: "Failed to create AudioComponentDescription")
         }
 
-        try await insertAudioUnit(componentDescription: componentDescription, at: index)
+        try await insertAudioUnit(
+            componentDescription: componentDescription,
+            reconnectChain: reconnectChain,
+            at: index
+        )
 
         if let fullState = insert.fullStateDictionary {
             if let effect = try await data.effect(at: index) {
                 effect.avAudioUnit.auAudioUnit.fullState = fullState
             }
         }
-
-        return nil
     }
 
     /// Create the Audio Unit at the specified index of the chain

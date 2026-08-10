@@ -16,7 +16,18 @@ public protocol NodeInputAccess: AnyObject {
 /// A node that participates in an audio engine graph, providing input/output access and bypass control.
 public protocol AudioEngineNode: NodeInputAccess, NodeOutputAccess {
     var isBypassed: Bool { get set }
-    func detachNodes() throws
+
+    /// Releases the node's resources and detaches it from the engine.
+    ///
+    /// **`async` for the conformers that own a background reader.** A node feeding itself from a
+    /// decoder has a task that may be inside a blocking read, and cancellation is observed rather
+    /// than immediate — so tearing down without waiting leaves that task running against state this
+    /// call is dismantling. A conformer with nothing in flight satisfies this with a synchronous
+    /// body unchanged.
+    ///
+    /// Not callable from `deinit`. Use ``detachIONodes()`` there, which is what the default
+    /// implementation does and needs no await.
+    func detachNodes() async throws
 }
 
 extension AudioEngineNode {
@@ -79,6 +90,9 @@ extension AudioEngineNode {
     }
 
     /// Detaches the input and output nodes from the engine.
+    ///
+    /// Separate from ``detachNodes()`` so a `deinit`, which cannot await, still has the whole of the
+    /// default teardown available to it.
     public func detachIONodes() throws {
         guard let engine else {
             throw NSError(description: "\(self) \(#function): engine is nil")

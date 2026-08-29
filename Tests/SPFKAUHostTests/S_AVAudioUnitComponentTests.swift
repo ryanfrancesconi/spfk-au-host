@@ -33,7 +33,9 @@ struct S_AVAudioUnitComponentTests {
         #expect(sendable.isSandboxSafe == component.isSandboxSafe)
         #expect(sendable.hasMIDIInput == component.hasMIDIInput)
         #expect(sendable.hasMIDIOutput == component.hasMIDIOutput)
-        #expect(sendable.hasCustomView == component.hasCustomView)
+        #if os(macOS)
+            #expect(sendable.hasCustomView == component.hasCustomView)
+        #endif
     }
 
     @Test func equalitySameDescription() {

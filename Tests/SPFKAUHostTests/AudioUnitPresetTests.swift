@@ -25,13 +25,16 @@ struct AudioUnitStateNotifierTests {
         componentFlagsMask: 0
     )
 
-    static let auReverbDesc = AudioComponentDescription(
-        componentType: kAudioUnitType_Effect,
-        componentSubType: kAudioUnitSubType_MatrixReverb,
-        componentManufacturer: kAudioUnitManufacturer_Apple,
-        componentFlags: 0,
-        componentFlagsMask: 0
-    )
+    // AUMatrixReverb is macOS-only; kAudioUnitSubType_MatrixReverb does not exist on iOS.
+    #if os(macOS)
+        static let auReverbDesc = AudioComponentDescription(
+            componentType: kAudioUnitType_Effect,
+            componentSubType: kAudioUnitSubType_MatrixReverb,
+            componentManufacturer: kAudioUnitManufacturer_Apple,
+            componentFlags: 0,
+            componentFlagsMask: 0
+        )
+    #endif
 
     @Test func notifyListenersReturnsNoErr() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
@@ -59,24 +62,26 @@ struct AudioUnitStateNotifierTests {
         await drainRunLoop()
     }
 
-    @Test func loadFactoryPresetSucceeds() async throws {
-        let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auReverbDesc,
-            options: []
-        )
+    #if os(macOS)
+        @Test func loadFactoryPresetSucceeds() async throws {
+            let avAudioUnit = try await AVAudioUnit.instantiate(
+                with: Self.auReverbDesc,
+                options: []
+            )
 
-        let factoryPresets = avAudioUnit.auAudioUnit.factoryPresets ?? []
-        try #require(!factoryPresets.isEmpty, "AUMatrixReverb should have factory presets")
+            let factoryPresets = avAudioUnit.auAudioUnit.factoryPresets ?? []
+            try #require(!factoryPresets.isEmpty, "AUMatrixReverb should have factory presets")
 
-        let presetName = factoryPresets[0].name
+            let presetName = factoryPresets[0].name
 
-        let status = AudioUnitStateNotifier.loadFactoryPreset(
-            audioUnit: avAudioUnit.audioUnit,
-            named: presetName
-        )
-        #expect(status == noErr)
-        await drainRunLoop()
-    }
+            let status = AudioUnitStateNotifier.loadFactoryPreset(
+                audioUnit: avAudioUnit.audioUnit,
+                named: presetName
+            )
+            #expect(status == noErr)
+            await drainRunLoop()
+        }
+    #endif
 
     @Test func loadFactoryPresetWithInvalidNameFails() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
@@ -92,42 +97,44 @@ struct AudioUnitStateNotifierTests {
         #expect(status != noErr)
     }
 
-    @Test func loadFactoryPresetChangesState() async throws {
-        let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: Self.auReverbDesc,
-            options: []
-        )
+    #if os(macOS)
+        @Test func loadFactoryPresetChangesState() async throws {
+            let avAudioUnit = try await AVAudioUnit.instantiate(
+                with: Self.auReverbDesc,
+                options: []
+            )
 
-        let factoryPresets = avAudioUnit.auAudioUnit.factoryPresets ?? []
-        try #require(factoryPresets.count >= 2, "Need at least 2 factory presets")
+            let factoryPresets = avAudioUnit.auAudioUnit.factoryPresets ?? []
+            try #require(factoryPresets.count >= 2, "Need at least 2 factory presets")
 
-        // Load first preset
-        let status1 = AudioUnitStateNotifier.loadFactoryPreset(
-            audioUnit: avAudioUnit.audioUnit,
-            named: factoryPresets[0].name
-        )
-        #expect(status1 == noErr)
+            // Load first preset
+            let status1 = AudioUnitStateNotifier.loadFactoryPreset(
+                audioUnit: avAudioUnit.audioUnit,
+                named: factoryPresets[0].name
+            )
+            #expect(status1 == noErr)
 
-        let stateAfterFirst = avAudioUnit.auAudioUnit.fullState
+            let stateAfterFirst = avAudioUnit.auAudioUnit.fullState
 
-        // Load second preset
-        let status2 = AudioUnitStateNotifier.loadFactoryPreset(
-            audioUnit: avAudioUnit.audioUnit,
-            named: factoryPresets[1].name
-        )
-        #expect(status2 == noErr)
+            // Load second preset
+            let status2 = AudioUnitStateNotifier.loadFactoryPreset(
+                audioUnit: avAudioUnit.audioUnit,
+                named: factoryPresets[1].name
+            )
+            #expect(status2 == noErr)
 
-        let stateAfterSecond = avAudioUnit.auAudioUnit.fullState
+            let stateAfterSecond = avAudioUnit.auAudioUnit.fullState
 
-        // States should differ between presets
-        #expect(stateAfterFirst != nil)
-        #expect(stateAfterSecond != nil)
+            // States should differ between presets
+            #expect(stateAfterFirst != nil)
+            #expect(stateAfterSecond != nil)
 
-        // The present preset name should reflect the second preset
-        let currentPreset = avAudioUnit.auAudioUnit.currentPreset
-        #expect(currentPreset?.name == factoryPresets[1].name)
-        await drainRunLoop()
-    }
+            // The present preset name should reflect the second preset
+            let currentPreset = avAudioUnit.auAudioUnit.currentPreset
+            #expect(currentPreset?.name == factoryPresets[1].name)
+            await drainRunLoop()
+        }
+    #endif
 }
 
 // MARK: - AudioUnitPresets

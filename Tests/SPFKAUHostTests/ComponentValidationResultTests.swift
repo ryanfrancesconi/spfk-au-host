@@ -92,33 +92,37 @@ struct ComponentValidationResultTests {
         #expect(result.isFormatCompatible == false)
     }
 
-    @Test func supportsMonoWithoutComponent() {
-        let validation = AudioUnitValidator.ValidationResult(result: .passed)
-        let result = ComponentValidationResult(
-            audioComponentDescription: Self.testDesc,
-            validation: validation,
-            name: "Test",
-            typeName: "Effect",
-            manufacturerName: "Apple",
-            versionString: "1.0"
-        )
+    #if os(macOS)
+        @Test func supportsMonoWithoutComponent() {
+            let validation = AudioUnitValidator.ValidationResult(result: .passed)
+            let result = ComponentValidationResult(
+                audioComponentDescription: Self.testDesc,
+                validation: validation,
+                name: "Test",
+                typeName: "Effect",
+                manufacturerName: "Apple",
+                versionString: "1.0"
+            )
 
-        #expect(result.supportsMono == false)
-    }
+            #expect(result.supportsMono == false)
+        }
+    #endif
 
-    @Test func supportsStereoWithoutComponent() {
-        let validation = AudioUnitValidator.ValidationResult(result: .passed)
-        let result = ComponentValidationResult(
-            audioComponentDescription: Self.testDesc,
-            validation: validation,
-            name: "Test",
-            typeName: "Effect",
-            manufacturerName: "Apple",
-            versionString: "1.0"
-        )
+    #if os(macOS)
+        @Test func supportsStereoWithoutComponent() {
+            let validation = AudioUnitValidator.ValidationResult(result: .passed)
+            let result = ComponentValidationResult(
+                audioComponentDescription: Self.testDesc,
+                validation: validation,
+                name: "Test",
+                typeName: "Effect",
+                manufacturerName: "Apple",
+                versionString: "1.0"
+            )
 
-        #expect(result.supportsStereo == false)
-    }
+            #expect(result.supportsStereo == false)
+        }
+    #endif
 
     @Test func descriptionWithComponent() {
         guard let component = AVAudioUnitComponentManager.shared()

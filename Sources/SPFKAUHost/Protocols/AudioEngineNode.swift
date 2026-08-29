@@ -104,9 +104,10 @@ extension AudioEngineNode {
     /// Separate from ``detachNodes()`` so a `deinit`, which cannot await, still has the whole of the
     /// default teardown available to it.
     public func detachIONodes() throws {
-        guard let engine else {
-            throw NSError(description: "\(self) \(#function): engine is nil")
-        }
+        // A node with no engine is already detached, which is this method's postcondition — so it
+        // is a success, not a failure. Throwing here made every teardown site swallow the result
+        // with `try?`, and a genuine failure from the disconnects below went with it.
+        guard let engine else { return }
 
         if let inputNode {
             try inputNode.disconnectInput()

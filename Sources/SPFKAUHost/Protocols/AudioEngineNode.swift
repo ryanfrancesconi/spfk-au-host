@@ -44,13 +44,23 @@ extension AudioEngineNode {
     }
 
     /// Whether the output node has an active connection in the engine.
-    public var isOutputNodeConnected: Bool {
+    public var hasOutputConnection: Bool {
         guard let outputNode else {
             Log.error("\(self) \(#function): engine is nil")
             return false
         }
 
-        return outputNode.isOutputNodeConnected
+        return outputNode.hasOutputConnection
+    }
+
+    /// Whether the output node's connections arrive at the engine's output node.
+    public var reachesOutput: Bool {
+        guard let outputNode else {
+            Log.error("\(self) \(#function): engine is nil")
+            return false
+        }
+
+        return outputNode.reachesOutput
     }
 
     /// The output format of the output node on bus 0.

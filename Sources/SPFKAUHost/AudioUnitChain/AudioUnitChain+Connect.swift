@@ -94,9 +94,12 @@ extension AudioUnitChain {
 
         let unbypassedEffects = await data.unbypassedEffects
 
+        try requireCurrentIO(input: input, output: output)
+
         // if there are no fx or the chain is bypassed connect input to output directly
         if isChainBypassed || unbypassedEffects.isEmpty {
             try await connect(input, to: output)
+            try requireCurrentIO(input: input, output: output)
             return
         }
 
@@ -114,6 +117,7 @@ extension AudioUnitChain {
 
         // connect the input to the first effect
         try await connect(input, to: firstEffect.avAudioUnit)
+        try requireCurrentIO(input: input, output: output)
 
         // if there are more effects, loop and connect them
         if unbypassedEffects.count > 1 {
@@ -124,11 +128,13 @@ extension AudioUnitChain {
                 Log.debug("Connecting", auInput.name, "to", auOutput.name)
 
                 try await connect(auInput, to: auOutput)
+                try requireCurrentIO(input: input, output: output)
             }
         }
 
         // connect the last effect (which could also be the first) to the output
         try await connect(lastEffect.avAudioUnit, to: output)
+        try requireCurrentIO(input: input, output: output)
 
         await data.allocateRenderResourcesIfNeeded()
 
@@ -142,5 +148,18 @@ extension AudioUnitChain {
 extension AudioUnitChain {
     private func connect(_ firstNode: AVAudioNode, to secondNode: AVAudioNode) async throws {
         try await delegate?.connectAndAttach(firstNode, to: secondNode, format: nil)
+    }
+
+    /// Checked after every connection ``connect()`` makes.
+    ///
+    /// This is an actor, so `updateIO` and `dispose()` reenter it while a connection is suspended
+    /// and replace both nodes. The remaining connections would otherwise wire the chain to nodes it
+    /// no longer holds — a graph reaching no output, which nothing downstream can tell from a
+    /// working one. Reported rather than reconnected: the caller that replaced the IO is already
+    /// connecting the chain on its own path.
+    private func requireCurrentIO(input: AVAudioNode, output: AVAudioNode) throws {
+        guard self.input === input, self.output === output else {
+            throw NSError(description: "The audio unit chain's IO was replaced while it was connecting")
+        }
     }
 }

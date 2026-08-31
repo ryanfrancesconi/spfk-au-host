@@ -18,97 +18,29 @@ Audio Unit (v3) hosting, validation, caching, and effects chain management for m
 - **Engine Abstraction** — `AudioEngineConnection` protocol decouples chain connection logic from `AVAudioEngine`, allowing the host to provide its own node attachment strategy
 - **Component Observation** — Real-time notifications for Audio Unit registration changes and component invalidation (plugin crash detection)
 
-## Usage
+## Key types
 
-### Effects Chain
-
-```swift
-import SPFKAUHost
-
-// Create a chain with a delegate that provides engine connection
-let chain = AudioUnitChain(delegate: myEngine)
-try await chain.updateIO(input: playerNode, output: mixerNode)
-
-// Insert effects by AudioComponentDescription
-try await chain.insertAudioUnit(componentDescription: reverbDesc, at: 0)
-try await chain.insertAudioUnit(componentDescription: delayDesc, at: 1)
-try await chain.connect()
-```
-
-### Bypass and Reorder
-
-```swift
-// Bypass a single effect
-try await chain.bypassEffect(at: 0, state: true, reconnect: true)
-
-// Bypass entire chain
-try await chain.bypassEffects(state: true)
-
-// Move effect from slot 0 to slot 2
-try await chain.moveEffect(from: 0, to: 2)
-```
-
-### Component Cache
-
-```swift
-let cacheManager = AudioUnitCacheManager(cachesDirectory: cachesURL)
-cacheManager.update(delegate: self)
-cacheManager.update(cacheURL: nil) // uses default
-
-// Load cached components or create fresh cache
-try await cacheManager.load()
-
-if cacheManager.validationIsNeeded {
-    try await cacheManager.createCache()
-}
-```
-
-### Host Musical Context
-
-```swift
-let hostState = HostAUState()
-hostState.musicalContext.currentTempo = 120
-hostState.musicalContext.timeSignatureNumerator = 4
-hostState.musicalContext.timeSignatureDenominator = 4
-
-// Provide to Audio Units via their blocks
-await chainData.update(hostAUState: hostState)
-
-// Mutations are reflected live — no need to reassign blocks
-hostState.musicalContext.currentTempo = 140
-```
-
-### Manufacturer Collection for Menus
-
-```swift
-let groups = AudioUnitManufacturerCollection.createGroup(
-    from: availableComponents
-)
-
-for manufacturer in groups {
-    print(manufacturer.name)  // "Apple", "FabFilter", etc.
-    for component in manufacturer.components {
-        print("  \(component.name)")  // "AUDelay", "Pro-Q 3", etc.
-    }
-}
-```
-
-### Engine Connection Protocol
-
-```swift
-// Implement AudioEngineConnection to provide your own AVAudioEngine
-struct MyEngine: AudioEngineConnection {
-    let engine: AVAudioEngine
-
-    func connectAndAttach(
-        _ node1: AVAudioNode, to node2: AVAudioNode, format: AVAudioFormat?
-    ) async throws {
-        engine.attach(node1)
-        engine.attach(node2)
-        engine.connect(node1, to: node2, format: format)
-    }
-}
-```
+| Type | Description |
+|------|-------------|
+| **`AudioUnitChain`** | The host: loads, connects, bypasses, reorders and removes Audio Units in a serial chain between an input and an output node |
+| **`AudioUnitChainData`** | The fixed-size slot array behind it. Each slot is empty or holds one `AudioUnitDescription` |
+| **`AudioUnitDescription`** | One loaded unit and what is known about it |
+| **`AudioUnitChainSnapshot`** / **`AudioUnitInsertSnapshot`** | `Sendable` snapshots of the chain and of one slot, safe to pass across isolation |
+| **`AudioUnitChainEvent`** / **`AudioUnitChainDelegate`** | What the chain reports back |
+| **`AudioUnitCacheManager`** | Component discovery, validation, and the cache that persists it across sessions |
+| **`AudioUnitCacheEvent`** / **`AudioUnitCacheObservation`** | Cache progress, and live notification of registration changes and plugin crashes |
+| **`AudioUnitValidator`** / **`ComponentValidationResult`** | The validation pipeline and what it concluded |
+| **`ComponentCollection`** / **`SystemComponentsResponse`** | The set of components on the system |
+| **`AudioUnitManufacturerCollection`** | Those components grouped by manufacturer, for menu display |
+| **`AudioUnitAvailability`** | The surface a host implements to supply that list |
+| **`S_AVAudioUnitComponent`** | A `Sendable` copy of `AVAudioUnitComponent`'s properties |
+| **`AudioUnitPresets`** | Factory preset loading, and user preset discovery under `~/Library/Audio/Presets` |
+| **`AudioUnitPresetStorage`** | File-based preset storage for a sandboxed app, in the same folder shape, so `.aupreset` files can be copied in by hand |
+| **`AudioUnitStateNotifier`** | Tells parameter listeners the state changed — what makes an open plugin UI follow a preset load |
+| **`HostAUState`** / **`HostMusicalContext`** / **`HostTransportState`** | Tempo, time signature, beat position and transport state for units that need host timing. Mutations are reflected live, so nothing has to reassign the blocks |
+| **`AudioEngineConnection`** | Decouples chain connection from `AVAudioEngine`, so the host supplies its own attachment strategy |
+| **`AudioEngineNode`** / **`NodeInputAccess`** / **`NodeOutputAccess`** | What the chain needs of the nodes at either end |
+| **`AudioUnitTestContent`** | Known-good components for tests to load against |
 
 ## Dependencies
 

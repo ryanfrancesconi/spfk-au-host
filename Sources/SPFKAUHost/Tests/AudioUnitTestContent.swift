@@ -5,7 +5,7 @@ import SPFKAudioBase
 import SPFKBase
 
 /// This doesn't actually do any audio - it's just filling in the delegate requirements
-public struct AudioUnitTestContent {
+public final class AudioUnitTestContent {
     public static let auDelayDesc = AudioComponentDescription(
         componentType: 1_635_083_896,
         componentSubType: 1_684_368_505,

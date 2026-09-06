@@ -9,7 +9,7 @@ public actor AudioUnitChain {
     public static let defaultInsertCount = 4
 
     /// Delegate that will be sent notifications
-    public var delegate: AudioUnitChainDelegate?
+    public weak var delegate: AudioUnitChainDelegate?
 
     /// first node in chain, generally a player or instrument
     public var input: AVAudioNode?

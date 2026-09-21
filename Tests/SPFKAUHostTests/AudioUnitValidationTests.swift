@@ -62,11 +62,13 @@ final class ValidateTaskGroupTests: BinTestCase, @unchecked Sendable {
         await super.init()
     }
 
-    func tearDown() async throws {
+    func tearDown() async {
         await manager.dispose()
     }
 
     @Test func validateReturnsResultsForAllComponents() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
 
         // Use a small set of known Apple components
@@ -84,11 +86,11 @@ final class ValidateTaskGroupTests: BinTestCase, @unchecked Sendable {
         for result in results {
             #expect(result.validation.result == .passed)
         }
-
-        try await tearDown()
     }
 
     @Test func validateResultsSortedByManufacturer() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
 
         let components = Array(AudioUnitCacheManager.compatibleComponents.prefix(5))
@@ -103,11 +105,11 @@ final class ValidateTaskGroupTests: BinTestCase, @unchecked Sendable {
         for i in 0 ..< results.count - 1 {
             #expect(results[i].manufacturerName <= results[i + 1].manufacturerName)
         }
-
-        try await tearDown()
     }
 
     @Test func validateSendsProgressEvents() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
 
         let components = Array(AudioUnitCacheManager.compatibleComponents.prefix(3))
@@ -126,11 +128,11 @@ final class ValidateTaskGroupTests: BinTestCase, @unchecked Sendable {
         }
 
         #expect(validatingEvents.count == expectedCount)
-
-        try await tearDown()
     }
 
     @Test func validateClearsScantaskWhenDone() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
 
         let components = Array(AudioUnitCacheManager.compatibleComponents.prefix(2))
@@ -140,18 +142,16 @@ final class ValidateTaskGroupTests: BinTestCase, @unchecked Sendable {
 
         let isScanning = await manager.isScanning
         #expect(isScanning == false)
-
-        try await tearDown()
     }
 
     @Test func validateEmptyComponentsReturnsEmpty() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
 
         let results = try await manager.validate(components: [])
 
         #expect(results.isEmpty)
-
-        try await tearDown()
     }
 }
 

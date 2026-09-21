@@ -17,6 +17,7 @@ final class AudioUnitCacheURLTests: BinTestCase, @unchecked Sendable {
 
     @Test func directorySetAfterCacheURLStillResolves() async throws {
         let manager = AudioUnitCacheManager()
+        defer { await manager.dispose() }
 
         // Nothing to derive a default from yet.
         await manager.update(cacheURL: nil)
@@ -26,31 +27,27 @@ final class AudioUnitCacheURLTests: BinTestCase, @unchecked Sendable {
 
         let cacheURL = try #require(await manager.cacheURL)
         #expect(cacheURL.deletingLastPathComponent() == bin.resolvingSymlinksInPath())
-
-        await manager.dispose()
     }
 
     @Test func directorySetBeforeCacheURLResolves() async throws {
         let manager = AudioUnitCacheManager()
+        defer { await manager.dispose() }
 
         await manager.update(cachesDirectory: bin)
         await manager.update(cacheURL: nil)
 
         let cacheURL = try #require(await manager.cacheURL)
         #expect(cacheURL.deletingLastPathComponent() == bin.resolvingSymlinksInPath())
-
-        await manager.dispose()
     }
 
     @Test func explicitCacheURLSurvivesADirectoryChange() async throws {
         let manager = AudioUnitCacheManager()
+        defer { await manager.dispose() }
         let explicit = bin.appendingPathComponent("Custom.json")
 
         await manager.update(cacheURL: explicit)
         await manager.update(cachesDirectory: bin.appendingPathComponent("Elsewhere"))
 
         await #expect(manager.cacheURL == explicit)
-
-        await manager.dispose()
     }
 }

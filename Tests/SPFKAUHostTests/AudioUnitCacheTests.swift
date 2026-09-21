@@ -18,7 +18,7 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         await super.init()
     }
 
-    func tearDown() async throws {
+    func tearDown() async {
         await manager.dispose()
     }
 
@@ -59,6 +59,8 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
     // MARK: - Parse
 
     @Test func parseCache() async throws {
+        defer { await tearDown() }
+
         let cacheURL = bin.appendingPathComponent("AudioUnitCache.json")
         try cacheJSON.write(to: cacheURL, atomically: true, encoding: .utf8)
 
@@ -69,11 +71,11 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         Log.debug(response.results.map(\.description))
 
         #expect(response.results.map(\.name) == ["AUHighShelfFilter", "AUDelay"])
-
-        try await tearDown()
     }
 
     @Test func parseCacheRestoresUIDs() async throws {
+        defer { await tearDown() }
+
         let cacheURL = bin.appendingPathComponent("AudioUnitCache.json")
         try cacheJSON.write(to: cacheURL, atomically: true, encoding: .utf8)
 
@@ -83,11 +85,11 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 
         let uids = await manager.cachedComponentUIDs
         #expect(uids == Set(["61756678687368666170706c", "6175667864656c796170706c"]))
-
-        try await tearDown()
     }
 
     @Test func parseCacheRestoresValidation() async throws {
+        defer { await tearDown() }
+
         let json = """
         {
             "cachedComponentUIDs": [],
@@ -120,13 +122,13 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         #expect(result.isEnabled == false)
         #expect(result.name == "FailedAU")
         #expect(result.manufacturerName == "Test")
-
-        try await tearDown()
     }
 
     // MARK: - Validation Is Needed
 
     @Test func validationIsNeededWhenUIDsMatch() async throws {
+        defer { await tearDown() }
+
         let cacheURL = bin.appendingPathComponent("AudioUnitCache.json")
 
         // Build UIDs from the actual system compatible components
@@ -148,11 +150,11 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 
         let needed = await manager.validationIsNeeded
         #expect(needed == false)
-
-        try await tearDown()
     }
 
     @Test func validationIsNeededWhenUIDsDiffer() async throws {
+        defer { await tearDown() }
+
         let cacheURL = bin.appendingPathComponent("AudioUnitCache.json")
 
         let json = """
@@ -169,21 +171,21 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 
         let needed = await manager.validationIsNeeded
         #expect(needed == true)
-
-        try await tearDown()
     }
 
     @Test func validationIsNeededWhenUIDsNil() async throws {
+        defer { await tearDown() }
+
         // cachedComponentUIDs is nil before loadCache is called
         let needed = await manager.validationIsNeeded
         #expect(needed == true)
-
-        try await tearDown()
     }
 
     // MARK: - Write + Round-Trip
 
     @Test func writeCacheRoundTrip() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
         await manager.update(cacheURL: nil)
 
@@ -226,11 +228,11 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         let uids = await manager.cachedComponentUIDs
         #expect(uids != nil)
         #expect(uids?.isEmpty == false)
-
-        try await tearDown()
     }
 
     @Test func writeCacheSerializesJSON() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
         await manager.update(cacheURL: nil)
 
@@ -265,13 +267,13 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         #expect(json.contains("\"audioUnits\""))
         #expect(json.contains("TimeoutAU"))
         #expect(json.contains("Timed out"))
-
-        try await tearDown()
     }
 
     // MARK: - Remove Cache
 
     @Test func removeCache() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
         await manager.update(cacheURL: nil)
 
@@ -284,13 +286,13 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 
         await manager.removeCache()
         #expect(!url.exists)
-
-        try await tearDown()
     }
 
     // MARK: - Load Lifecycle
 
     @Test func loadSetsComponentCollectionAndStartsObservation() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
 
         let cacheURL = bin.appendingPathComponent("AudioUnitCache.json")
@@ -305,13 +307,13 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 
         let isObserving = await manager.isCacheObserving
         #expect(isObserving == true)
-
-        try await tearDown()
     }
 
     // MARK: - Incremental Update
 
     @Test func updateCacheNoOpWhenUIDsUnchanged() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
         await manager.update(cacheURL: nil)
 
@@ -343,11 +345,11 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         let fileContent = try String(contentsOf: cacheURL, encoding: .utf8)
         #expect(fileContent.contains("\"cachedComponentUIDs\""))
         #expect(!fileContent.contains("\"prettyPrinted\"")) // JSONEncoder output marker absent
-
-        try await tearDown()
     }
 
     @Test func updateCacheRemovesStaleEntry() async throws {
+        defer { await tearDown() }
+
         await manager.update(delegate: self)
         await manager.update(cacheURL: nil)
 
@@ -397,8 +399,6 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         // cachedComponentUIDs must now match the real system (fake UID evicted)
         let uids = await manager.cachedComponentUIDs
         #expect(uids?.contains(fakeUID) == false)
-
-        try await tearDown()
     }
 
     // MARK: - Helpers

@@ -2,6 +2,7 @@
 
 import AVFoundation
 import Foundation
+import os
 import SPFKAudioBase
 import SPFKBase
 import SPFKTesting
@@ -307,6 +308,45 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 
         let isObserving = await manager.isCacheObserving
         #expect(isObserving == true)
+    }
+
+    @Test func disposeStopsObservationAndAllowsReload() async throws {
+        defer { await tearDown() }
+
+        await manager.update(delegate: self)
+
+        let cacheURL = bin.appendingPathComponent("AudioUnitCache.json")
+        try cacheJSON.write(to: cacheURL, atomically: true, encoding: .utf8)
+        await manager.update(cacheURL: cacheURL)
+
+        try await manager.load()
+        await manager.dispose()
+
+        #expect(await manager.componentCollection == nil)
+        #expect(await manager.isCacheObserving == false)
+
+        try await manager.load()
+
+        #expect(await manager.componentCollection?.isEmpty == false)
+        #expect(await manager.isCacheObserving == true)
+    }
+
+    @Test(.tags(.slow)) func stopCancelsPendingRegistrationEvent() async throws {
+        let observation = AudioUnitCacheObservation()
+        let count = OSAllocatedUnfairLock(initialState: 0)
+
+        observation.eventHandler = { _ in
+            count.withLock { $0 += 1 }
+        }
+
+        observation.start()
+        NotificationCenter.default.post(name: .componentRegistrationsChanged, object: nil)
+        observation.stop()
+
+        // The event is delivered after a 2 second delay.
+        try await Task.sleep(seconds: 2.5)
+
+        #expect(count.withLock { $0 } == 0)
     }
 
     // MARK: - Incremental Update

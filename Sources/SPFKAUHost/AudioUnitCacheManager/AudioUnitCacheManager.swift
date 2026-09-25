@@ -165,9 +165,11 @@ public actor AudioUnitCacheManager {
         self.delegate = delegate
     }
 
-    /// Stops observation and releases the component collection.
+    /// Stops observation, cancels any scan in progress and releases the component collection.
+    /// `load()` may be called again afterwards.
     public func dispose() {
         cacheObservation.stop()
+        scanTask?.cancel()
         componentCollection = nil
     }
 

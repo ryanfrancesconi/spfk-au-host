@@ -57,6 +57,9 @@ public final class AudioUnitCacheObservation {
         NotificationCenter.default.removeObserver(self, name: .componentRegistrationsChanged, object: nil)
         NotificationCenter.default.removeObserver(self, name: .componentInstanceInvalidation, object: nil)
 
+        notificationTask?.cancel()
+        notificationTask = nil
+
         isObserving = false
     }
 

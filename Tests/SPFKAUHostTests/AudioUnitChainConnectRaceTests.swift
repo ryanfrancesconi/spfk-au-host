@@ -48,8 +48,8 @@ struct AudioUnitChainConnectRaceTests {
         let delegate = RecordingChainDelegate()
         let chain = AudioUnitChain(delegate: delegate)
 
-        nonisolated(unsafe) let input = AVAudioPlayerNode()
-        nonisolated(unsafe) let output = AVAudioMixerNode()
+        let input = AVAudioPlayerNode()
+        let output = AVAudioMixerNode()
         try await chain.updateIO(input: input, output: output)
 
         delegate.connections.removeAll()
@@ -70,15 +70,15 @@ struct AudioUnitChainConnectRaceTests {
         let delegate = RecordingChainDelegate()
         let chain = AudioUnitChain(delegate: delegate)
 
-        nonisolated(unsafe) let staleInput = AVAudioPlayerNode()
-        nonisolated(unsafe) let staleOutput = AVAudioMixerNode()
+        let staleInput = AVAudioPlayerNode()
+        let staleOutput = AVAudioMixerNode()
         try await chain.updateIO(input: staleInput, output: staleOutput)
 
         try await chain.insertAudioUnit(componentDescription: AudioUnitTestContent.auDelayDesc, at: 0)
         try await chain.insertAudioUnit(componentDescription: AudioUnitTestContent.auMatrixReverbDesc, at: 1)
 
-        nonisolated(unsafe) let currentInput = AVAudioPlayerNode()
-        nonisolated(unsafe) let currentOutput = AVAudioMixerNode()
+        let currentInput = AVAudioPlayerNode()
+        let currentOutput = AVAudioMixerNode()
 
         delegate.connections.removeAll()
 

@@ -30,6 +30,9 @@ public struct AudioUnitChainSnapshot: Sendable {
 
     /// Snapshots of occupied slots only.
     public let inserts: [AudioUnitInsertSnapshot]
+
+    /// Whether the whole chain is out of the signal path, apart from each insert's own bypass.
+    public let isChainBypassed: Bool
 }
 
 extension AudioUnitInsertSnapshot {
@@ -49,7 +52,7 @@ extension AudioUnitInsertSnapshot {
 extension AudioUnitChain {
     /// Captures the current chain state as a `Sendable` snapshot.
     public func snapshot() async -> AudioUnitChainSnapshot {
-        await data.snapshot()
+        await data.snapshot(isChainBypassed: isChainBypassed)
     }
 
     /// Reinstates a saved chain: resizes the slot array to `insertCount`, then loads the inserts.
@@ -83,13 +86,19 @@ extension AudioUnitChain {
     /// Reinstates a chain captured by `snapshot()`.
     @discardableResult
     public func restore(_ snapshot: AudioUnitChainSnapshot) async throws -> [Error?] {
-        try await restore(insertCount: snapshot.insertCount, inserts: snapshot.inserts.map(\.insert))
+        let errors = try await restore(insertCount: snapshot.insertCount, inserts: snapshot.inserts.map(\.insert))
+
+        if snapshot.isChainBypassed {
+            try await bypassEffects(state: true)
+        }
+
+        return errors
     }
 }
 
 extension AudioUnitChainData {
     /// Captures all occupied slots as a `Sendable` snapshot.
-    func snapshot() -> AudioUnitChainSnapshot {
+    func snapshot(isChainBypassed: Bool) -> AudioUnitChainSnapshot {
         let inserts: [AudioUnitInsertSnapshot] = effectsChain.enumerated().compactMap { index, slot in
             guard let slot else { return nil }
 
@@ -113,7 +122,8 @@ extension AudioUnitChainData {
 
         return AudioUnitChainSnapshot(
             insertCount: insertCount,
-            inserts: inserts
+            inserts: inserts,
+            isChainBypassed: isChainBypassed
         )
     }
 }

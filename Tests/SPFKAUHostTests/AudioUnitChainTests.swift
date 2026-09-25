@@ -134,6 +134,22 @@ final class AudioUnitChainTests: TestCaseModel {
         #expect(unbypassed == 1)
     }
 
+    /// A bypassed chain must stay out of the signal path across a graph rebuild.
+    @Test func snapshotRestoresAWholeChainBypass() async throws {
+        try await audioUnitChain.insertAudioUnit(componentDescription: AudioUnitTestContent.auDelayDesc, at: 0)
+        try await audioUnitChain.bypassEffects(state: true)
+
+        let snapshot = await audioUnitChain.snapshot()
+
+        let rebuilt = AudioUnitChain(delegate: dummyEngine)
+        try await rebuilt.updateIO(input: AVAudioPlayerNode(), output: AVAudioMixerNode())
+        try await rebuilt.restore(snapshot)
+
+        let effectsCount = await rebuilt.data.effectsCount
+        #expect(effectsCount == 1)
+        #expect(await rebuilt.isChainBypassed)
+    }
+
     @Test func appendThenInsertAtNewIndex() async throws {
         await audioUnitChain.appendInsert()
         let newIndex = await audioUnitChain.insertCount - 1

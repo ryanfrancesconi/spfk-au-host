@@ -22,9 +22,5 @@ final class AudioUnitAvailabilityTests: TestCaseModel {
 
         #expect(dummyEngine.audioUnitManufacturerCollection.count == 2)
         #expect(collection.first?.components.count == 4)
-
-        for company in collection {
-            Log.debug(company.name, company.components.map { "\($0.name)" })
-        }
     }
 }

@@ -69,8 +69,6 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 
         let response = try await manager.loadCache()
 
-        Log.debug(response.results.map(\.description))
-
         #expect(response.results.map(\.name) == ["AUHighShelfFilter", "AUDelay"])
     }
 
@@ -450,7 +448,5 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 }
 
 extension AudioUnitCacheTests: AudioUnitCacheManagerDelegate {
-    func handleAudioUnitCacheManager(event: AudioUnitCacheEvent) async {
-        Log.debug(event)
-    }
+    func handleAudioUnitCacheManager(event: AudioUnitCacheEvent) async {}
 }

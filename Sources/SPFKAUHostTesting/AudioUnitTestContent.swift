@@ -65,16 +65,10 @@ public final class AudioUnitTestContent {
 }
 
 extension AudioUnitTestContent: AudioUnitChainDelegate {
-    public func audioUnitChain(_ audioUnitChain: AudioUnitChain, event: AudioUnitChainEvent) async {
-        Log.debug(event)
-    }
+    public func audioUnitChain(_ audioUnitChain: AudioUnitChain, event: AudioUnitChainEvent) async {}
 
     // This is where the AVAudioEngine would perform the connection
-    public func connectAndAttach(_ node1: AVAudioNode, to node2: AVAudioNode, format: AVAudioFormat?) async throws {
-        Log.debug(
-            "\(node1.resolvedName) to \(node2.resolvedName) with \(format?.readableDescription ?? "default engine format")"
-        )
-    }
+    public func connectAndAttach(_ node1: AVAudioNode, to node2: AVAudioNode, format: AVAudioFormat?) async throws {}
 }
 
 extension AudioUnitTestContent: AudioUnitAvailability {

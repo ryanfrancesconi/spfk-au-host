@@ -135,8 +135,6 @@ public actor AudioUnitCacheManager {
     /// Invalidates the cached compatible components, forcing a fresh query on next access.
     func invalidateCachedComponents() {
         _cachedCompatibleComponents = nil
-
-        Log.debug("_cachedCompatibleComponents = nil")
     }
 
     /// A textual description of all compatible Audio Units and the cache file path.
@@ -173,10 +171,6 @@ public actor AudioUnitCacheManager {
         componentCollection = nil
     }
 
-    deinit {
-        Log.debug("- { \(self) }")
-    }
-
     /// Cancels any in-progress component validation scan.
     public func cancelScan() {
         guard isScanning else {
@@ -196,8 +190,6 @@ public actor AudioUnitCacheManager {
         }
 
         // request plugins
-        Log.debug("*AU Loading cached Audio Units...")
-
         // Use defer so observation always starts after loadCache() regardless of success or
         // failure. Starting it before loadCache() caused audio-engine init notifications
         // (componentRegistrationsChanged) to trigger a spurious full rescan on every launch.
@@ -220,8 +212,6 @@ public actor AudioUnitCacheManager {
                 await self.invalidateCachedComponents()
 
                 guard case .componentRegistrationsChanged = event else { return }
-
-                Log.debug("*AU observed: componentRegistrationsChanged event *")
 
                 guard await !self.isScanning else {
                     Log.debug("*AU component change detected but scan already in progress, skipping")

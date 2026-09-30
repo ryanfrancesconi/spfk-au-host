@@ -125,8 +125,6 @@ extension AudioUnitChain {
                 let auInput = unbypassedEffects[i - 1].avAudioUnit
                 let auOutput = unbypassedEffects[i].avAudioUnit
 
-                Log.debug("Connecting", auInput.name, "to", auOutput.name)
-
                 try await connect(auInput, to: auOutput)
                 try requireCurrentIO(input: input, output: output)
             }

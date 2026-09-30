@@ -148,7 +148,6 @@ extension AudioUnitChainData {
     public func allocateRenderResourcesIfNeeded() async {
         for au in unbypassedAUAudioUnits where !au.renderResourcesAllocated {
             do {
-                Log.debug("*AU allocateRenderResources for", au.audioUnitName)
                 try au.allocateRenderResources()
 
             } catch {
@@ -164,10 +163,7 @@ extension AudioUnitChainData {
     /// allocating before the graph connection fails the connection.
     public func update(hostAUState: HostAUState) async {
         for au in unbypassedAUAudioUnits {
-            Log.debug("*AU Setting musicalContextBlock for", au.audioUnitName)
             au.musicalContextBlock = hostAUState.musicalContextBlock
-
-            Log.debug("*AU Setting transportStateBlock for", au.audioUnitName)
             au.transportStateBlock = hostAUState.transportStateBlock
         }
     }

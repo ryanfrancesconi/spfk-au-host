@@ -40,8 +40,6 @@ extension AudioUnitCacheManager {
 
     /// All the components that this framework can support
     public static var compatibleComponents: [AVAudioUnitComponent] {
-        Log.debug("*AU Requesting compatibleComponents from system...")
-
         let components = AVAudioUnitComponentManager
             .shared()
             .components(matching: predicate)
@@ -127,8 +125,6 @@ extension AudioUnitCacheManager {
         allowedDescriptions: [AudioComponentDescription]
     ) async -> ComponentValidationResult {
         guard shouldValidate(audioComponentDescription: component.audioComponentDescription) else {
-            Log.debug("* Skipping", component.name, " - Doesn't need validation.")
-
             return ComponentValidationResult(
                 audioComponentDescription: component.audioComponentDescription,
                 component: component,

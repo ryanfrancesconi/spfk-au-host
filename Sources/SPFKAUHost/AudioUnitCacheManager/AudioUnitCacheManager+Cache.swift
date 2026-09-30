@@ -198,8 +198,6 @@ extension AudioUnitCacheManager {
             audioUnits: audioUnits
         )
 
-        Log.debug("*AU Writing cache to", cacheURL)
-
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(collection)

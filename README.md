@@ -8,7 +8,7 @@ Audio Unit (v3) hosting, validation, caching, and effects chain management for m
 ## Features
 
 - **Effects Chain** — Actor-based `AudioUnitChain` for loading, connecting, bypassing, reordering, and removing Audio Units in a serial chain between input and output nodes
-- **Component Caching** — XML-based cache system (`AudioUnitCacheManager`) for persisting validated Audio Unit component state across sessions
+- **Component Caching** — JSON cache system (`AudioUnitCacheManager`) for persisting validated Audio Unit component state across sessions
 - **Component Validation** — Multi-strategy validation pipeline using `AudioComponentValidateWithResults` (macOS 13+/iOS 16+), and external `auval`/`auvaltool` fallback (macOS only)
 - **Preset Management** — Factory preset loading via AudioToolbox APIs and user preset discovery from the `~/Library/Audio/Presets` hierarchy (macOS only)
 - **Full State Persistence** — Plist-based serialization and restoration of Audio Unit full state dictionaries for project save/load

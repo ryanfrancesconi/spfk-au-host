@@ -7,6 +7,7 @@ import SPFKAUHost
 import SPFKBase
 import SPFKTesting
 import Testing
+import SPFKAUHostTesting
 
 final class AudioUnitChainTests: TestCaseModel {
     let audioUnitChain: AudioUnitChain

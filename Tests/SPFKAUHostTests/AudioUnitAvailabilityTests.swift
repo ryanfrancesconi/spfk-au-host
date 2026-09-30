@@ -6,6 +6,7 @@ import SPFKAUHost
 import SPFKBase
 import SPFKTesting
 import Testing
+import SPFKAUHostTesting
 
 final class AudioUnitAvailabilityTests: TestCaseModel {
     let dummyEngine = AudioUnitTestContent()

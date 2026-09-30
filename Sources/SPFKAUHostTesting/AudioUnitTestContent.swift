@@ -2,6 +2,7 @@
 
 import AVFoundation
 import SPFKAudioBase
+import SPFKAUHost
 import SPFKBase
 
 /// This doesn't actually do any audio - it's just filling in the delegate requirements
@@ -46,7 +47,7 @@ public final class AudioUnitTestContent {
         componentFlagsMask: 0
     )
 
-    static var components: [AVAudioUnitComponent] {
+    public static var components: [AVAudioUnitComponent] {
         [
             AVAudioUnitComponent.component(matching: auDelayDesc),
             AVAudioUnitComponent.component(matching: auMatrixReverbDesc),

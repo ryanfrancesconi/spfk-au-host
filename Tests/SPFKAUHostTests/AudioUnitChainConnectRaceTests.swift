@@ -7,6 +7,7 @@ import SPFKAUHost
 import SPFKBase
 import SPFKTesting
 import Testing
+import SPFKAUHostTesting
 
 /// Records what was connected, and runs a hook inside the next connection — the suspension a
 /// concurrent `updateIO`/`dispose` reenters the actor through.

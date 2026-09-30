@@ -4,6 +4,7 @@ import AudioToolbox
 import AVFoundation
 import Foundation
 import Testing
+import SPFKAUHostTesting
 
 @testable import SPFKAUHost
 

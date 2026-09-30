@@ -12,6 +12,10 @@ let package = Package(
             name: "SPFKAUHost",
             targets: ["SPFKAUHost"]
         ),
+        .library(
+            name: "SPFKAUHostTesting",
+            targets: ["SPFKAUHostTesting"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/ryanfrancesconi/spfk-audio-base", from: "1.6.1"),
@@ -26,10 +30,18 @@ let package = Package(
                 .product(name: "SPFKUtils", package: "spfk-utils"),
             ]
         ),
+        .target(
+            name: "SPFKAUHostTesting",
+            dependencies: [
+                .targetItem(name: "SPFKAUHost", condition: nil),
+                .product(name: "SPFKAudioBase", package: "spfk-audio-base"),
+            ]
+        ),
         .testTarget(
             name: "SPFKAUHostTests",
             dependencies: [
                 .targetItem(name: "SPFKAUHost", condition: nil),
+                .targetItem(name: "SPFKAUHostTesting", condition: nil),
                 .product(name: "SPFKTesting", package: "spfk-testing"),
             ]
         ),

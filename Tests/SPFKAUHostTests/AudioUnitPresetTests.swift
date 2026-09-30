@@ -3,6 +3,7 @@
 import AudioToolbox
 import AVFoundation
 import Testing
+import SPFKAUHostTesting
 
 @testable import SPFKAUHost
 

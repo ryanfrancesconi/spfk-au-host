@@ -1,6 +1,5 @@
 // Copyright Ryan Francesconi. All Rights Reserved. Revision History at https://github.com/ryanfrancesconi/spfk-au-host
 
-import AEXML
 @preconcurrency import AVFoundation
 import AudioToolbox
 import SPFKBase
@@ -31,11 +30,6 @@ public struct AudioUnitDescription: Equatable, Sendable {
             // the audio unit may or may not agree to this
             avAudioUnit.auAudioUnit.shouldBypassEffect = newValue
         }
-    }
-
-    /// The full state of the audio unit serialized as an XML plist element, if available.
-    public var fullStatePlist: AEXMLElement? {
-        AudioUnitPresets.fullStateDocument(for: avAudioUnit)?.root
     }
 
     /// The wrapped `AVAudioUnit` instance.

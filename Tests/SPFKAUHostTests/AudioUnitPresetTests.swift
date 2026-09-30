@@ -140,20 +140,6 @@ struct AudioUnitStateNotifierTests {
 // MARK: - AudioUnitPresets
 
 struct AudioUnitPresetsTests {
-    @Test func fullStateDocumentReturnsXML() async throws {
-        let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: AudioUnitTestContent.auDelayDesc,
-            options: []
-        )
-
-        let document = AudioUnitPresets.fullStateDocument(for: avAudioUnit)
-        #expect(document != nil)
-
-        // The XML should contain plist content
-        let xml = document?.xml
-        #expect(xml?.contains("plist") == true)
-    }
-
     @Test func loadPresetFromFullState() async throws {
         let avAudioUnit = try await AVAudioUnit.instantiate(
             with: AudioUnitTestContent.auDelayDesc,
@@ -177,27 +163,6 @@ struct AudioUnitPresetsTests {
         // Verify state was restored
         let restoredState = avAudioUnit.auAudioUnit.fullState
         #expect(restoredState != nil)
-        await drainRunLoop()
-    }
-
-    @Test func fullStateRoundTrip() async throws {
-        let avAudioUnit = try await AVAudioUnit.instantiate(
-            with: AudioUnitTestContent.auDelayDesc,
-            options: []
-        )
-
-        // Get XML document from current state
-        let document = AudioUnitPresets.fullStateDocument(for: avAudioUnit)
-        try #require(document != nil)
-
-        // Modify a parameter
-        if let param = avAudioUnit.auAudioUnit.parameterTree?.allParameters.first {
-            param.value = param.minValue
-        }
-
-        // Load state back from XML element (this calls notifyListeners internally)
-        let restored = await AudioUnitPresets.loadPreset(for: avAudioUnit, element: document!.root)
-        #expect(restored != nil)
         await drainRunLoop()
     }
 

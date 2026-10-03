@@ -45,15 +45,25 @@ extension AudioUnitChain {
         return nil
     }
 
+    /// How long an instantiation may take before it is treated as lost.
+    ///
+    /// `AVAudioUnit.instantiate` never calls back when the AU's hosting process dies mid-call, so
+    /// without a limit the caller waits forever.
+    static let instantiationTimeout: Duration = .seconds(15)
+
     /// Creates an effect audio unit with the specified instantiation options.
+    ///
+    /// Throws ``AudioUnitHostingError/instantiationTimedOut`` after ``instantiationTimeout``.
     public static func createEffect(
         componentDescription: AudioComponentDescription,
         options: AudioComponentInstantiationOptions
     ) async throws -> AVAudioUnit? {
-        try await AVAudioUnit.instantiate(
-            with: componentDescription,
-            options: options
-        )
+        try await firstToFinish {
+            try await AVAudioUnit.instantiate(with: componentDescription, options: options)
+        } or: {
+            try await Task.sleep(for: instantiationTimeout)
+            throw AudioUnitHostingError.instantiationTimedOut
+        }
     }
 
     /// Creates a MIDI instrument audio unit from the given component description.

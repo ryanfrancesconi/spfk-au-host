@@ -209,14 +209,25 @@ extension AudioUnitCacheManager {
 
     // MARK: - Incremental Update
 
-    /// Incrementally updates the cache after a componentRegistrationsChanged event.
+    /// Brings a loaded cache in line with the system's components, validating only those added
+    /// since it was written. With no cache loaded, validates everything.
+    public func refreshCache() async throws {
+        guard componentCollection != nil else {
+            try await createCache()
+            return
+        }
+
+        try await updateCache()
+    }
+
+    /// Incrementally updates the cache to the system's current components.
     /// Validates only newly added components and removes stale entries, avoiding a full rescan.
     func updateCache() async throws {
         let freshComponents = cachedCompatibleComponents()
         let systemUIDs = Set(freshComponents.map(\.audioComponentDescription.uid))
 
         guard systemUIDs != cachedComponentUIDs else {
-            Log.debug("*AU componentRegistrationsChanged: no net change, skipping rescan")
+            Log.debug("*AU components unchanged, skipping rescan")
             return
         }
 

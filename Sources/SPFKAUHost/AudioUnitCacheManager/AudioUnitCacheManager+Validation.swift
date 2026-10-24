@@ -38,11 +38,13 @@ extension AudioUnitCacheManager {
         )
     }
 
-    /// All the components that this framework can support
+    /// All the components that this framework can support. Spongefork's own units are registered
+    /// in process and are internal, so they are never offered, validated or cached.
     public static var compatibleComponents: [AVAudioUnitComponent] {
         let components = AVAudioUnitComponentManager
             .shared()
             .components(matching: predicate)
+            .filter { $0.audioComponentDescription.componentManufacturer != kAudioUnitManufacturer_Spongefork }
 
         return components.removingDuplicatesRandomOrdering()
     }

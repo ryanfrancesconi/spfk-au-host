@@ -141,9 +141,11 @@ extension AudioUnitCacheManager {
 
         removeCache()
 
-        let results = try await validate()
+        let components = cachedCompatibleComponents()
+        let results = try await validate(components: components)
 
         update(componentCollection: ComponentCollection(results: results))
+        cachedComponentUIDs = Set(components.map(\.audioComponentDescription.uid))
 
         // reapply isEnabled or if missing true
         if let value = previousCollection {

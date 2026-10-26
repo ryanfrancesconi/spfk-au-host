@@ -57,6 +57,21 @@ final class AudioUnitCacheLifecycleTests: BinTestCase, @unchecked Sendable {
     func tearDown() async {
         await manager.dispose()
     }
+
+    // MARK: - Tests
+
+    @Test func fullScanLeavesNothingToRevalidate() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        try await manager.createCache()
+        #expect(await manager.validationIsNeeded == false)
+
+        let before = recorder.validatingCount
+        try await manager.updateCache()
+        #expect(recorder.validatingCount == before)
+    }
+
 }
 
 // MARK: - Helpers

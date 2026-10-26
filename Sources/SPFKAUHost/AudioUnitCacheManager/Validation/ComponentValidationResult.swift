@@ -17,6 +17,9 @@ public struct ComponentValidationResult: Sendable {
     public let manufacturerName: String
     /// The version string of the Audio Unit.
     public let versionString: String
+    /// The version this result's verdict was reached on, which differs from `versionString` once
+    /// the plugin is updated in place.
+    public let validatedVersionString: String
 
     /// The validation result indicating whether this component passed validation.
     public var validation: AudioUnitValidator.ValidationResult
@@ -61,7 +64,8 @@ public struct ComponentValidationResult: Sendable {
         audioComponentDescription: AudioComponentDescription,
         component: AVAudioUnitComponent,
         validation: AudioUnitValidator.ValidationResult,
-        isEnabled: Bool = true
+        isEnabled: Bool = true,
+        validatedVersionString: String? = nil
     ) {
         self.audioComponentDescription = audioComponentDescription
         self.component = component
@@ -72,6 +76,7 @@ public struct ComponentValidationResult: Sendable {
         typeName = component.localizedTypeName
         manufacturerName = component.manufacturerName
         versionString = component.versionString
+        self.validatedVersionString = validatedVersionString ?? component.versionString
     }
 
     /// Creates a validation result with explicit metadata when no `AVAudioUnitComponent` is available.
@@ -92,5 +97,6 @@ public struct ComponentValidationResult: Sendable {
         self.typeName = typeName
         self.manufacturerName = manufacturerName
         self.versionString = versionString
+        validatedVersionString = versionString
     }
 }

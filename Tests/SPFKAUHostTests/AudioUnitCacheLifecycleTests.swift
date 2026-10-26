@@ -139,15 +139,33 @@ final class AudioUnitCacheLifecycleTests: BinTestCase, @unchecked Sendable {
         let cached = Array(components.prefix(Self.initialCount))
         let bogus = cached[1].audioComponentDescription.uid
 
+        try await writeCacheFile(for: cached, fields: { uid in
+            uid == bogus ? #""validation": "Bogus""# : #""validation": "Passed""#
+        })
+
+        try await manager.load()
+        let loaded = await manager.componentCollection?.validationResults.first { $0.audioComponentDescription.uid == bogus }
+        #expect(loaded?.validation.result == .unknown)
+
+        try await manager.refreshCache()
+        #expect(validated.value == [bogus])
+    }
+
+    /// Writes a cache listing `cached` as validated, each entry's fields after the name supplied by `fields`.
+    func writeCacheFile(
+        for cached: [AVAudioUnitComponent],
+        version: (String) -> String? = { _ in nil },
+        isEnabled: (String) -> Bool = { _ in true },
+        fields: (String) -> String = { _ in #""validationResult": 1"# }
+    ) async throws {
         let entries = cached.map { component in
             let acd = component.audioComponentDescription
-            let validation = acd.uid == bogus ? "Bogus" : "Passed"
             return """
             {"name": "\(component.name)", "manufacturerName": "Apple", "typeName": "Effect",
-             "version": "\(component.versionString)", "componentType": \(acd.componentType),
+             "version": "\(version(acd.uid) ?? component.versionString)", "componentType": \(acd.componentType),
              "componentSubType": \(acd.componentSubType), "componentManufacturer": \(acd.componentManufacturer),
              "componentFlags": \(acd.componentFlags), "componentFlagsMask": \(acd.componentFlagsMask),
-             "validation": "\(validation)", "isEnabled": true}
+             \(fields(acd.uid)), "isEnabled": \(isEnabled(acd.uid))}
             """
         }
 
@@ -156,13 +174,40 @@ final class AudioUnitCacheLifecycleTests: BinTestCase, @unchecked Sendable {
 
         let url = try #require(await manager.cacheURL)
         try json.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    @Test func updatedPluginIsRevalidatedAndKeepsItsEnabledState() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        let cached = Array(components.prefix(Self.initialCount))
+        let updated = cached[2].audioComponentDescription.uid
+
+        try await writeCacheFile(
+            for: cached,
+            version: { $0 == updated ? "0.0.1" : nil },
+            isEnabled: { $0 != updated }
+        )
 
         try await manager.load()
-        let loaded = await manager.componentCollection?.validationResults.first { $0.audioComponentDescription.uid == bogus }
-        #expect(loaded?.validation.result == .unknown)
+        try await manager.refreshCache()
+
+        #expect(validated.value == [updated])
+        let entry = await manager.componentCollection?.validationResults.first { $0.audioComponentDescription.uid == updated }
+        #expect(entry?.isEnabled == false)
+    }
+
+    @Test func unchangedVersionsAreNotRevalidated() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        try await writeCacheFile(for: Array(components.prefix(Self.initialCount)))
+
+        try await manager.load()
+        #expect(await manager.validationIsNeeded == false)
 
         try await manager.refreshCache()
-        #expect(validated.value == [bogus])
+        #expect(validated.value.isEmpty)
     }
 
     // MARK: - One scan at a time

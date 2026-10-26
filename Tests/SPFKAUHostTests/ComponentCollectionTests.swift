@@ -119,6 +119,15 @@ struct ComponentCollectionTests {
         #expect(collection1.validationResults.first?.isEnabled == false)
     }
 
+    @Test func insertKeepsTheReplacedEntrysEnabledState() {
+        var collection = ComponentCollection(results: [makeResult(isEnabled: false)])
+        collection.insert(result: makeResult(passed: false, isEnabled: true))
+
+        #expect(collection.validationResults.count == 1)
+        #expect(collection.validationResults.first?.isEnabled == false)
+        #expect(collection.validationResults.first?.validation.result == .failed)
+    }
+
     @Test func effectTypesReturnsUniqueTypes() {
         let result = makeResult()
         let collection = ComponentCollection(results: [result])

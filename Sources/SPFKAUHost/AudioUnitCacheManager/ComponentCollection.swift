@@ -147,9 +147,15 @@ public struct ComponentCollection: Sendable {
         validationResults.removeAll { uids.contains($0.audioComponentDescription.uid) }
     }
 
-    /// Inserts a result, replacing any existing entry with the same UID.
+    /// Inserts a result, replacing any existing entry with the same UID and keeping its enabled state.
     public mutating func insert(result: ComponentValidationResult) {
         let uid = result.audioComponentDescription.uid
+        var result = result
+
+        if let existing = validationResults.first(where: { $0.audioComponentDescription.uid == uid }) {
+            result.isEnabled = existing.isEnabled
+        }
+
         validationResults.removeAll { $0.audioComponentDescription.uid == uid }
         validationResults.append(result)
     }

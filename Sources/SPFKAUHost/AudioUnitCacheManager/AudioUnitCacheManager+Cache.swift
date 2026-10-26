@@ -35,10 +35,28 @@ private struct CachedAudioUnitCollection: Codable {
 // MARK: - Cache
 
 extension AudioUnitCacheManager {
-    /// Whether the set of system components differs from the cached set, indicating a rescan is needed.
+    /// Whether the system's components differ from the cached set, or any has been updated since
+    /// it was validated.
     public var validationIsNeeded: Bool {
-        let systemUIDs = Set(cachedCompatibleComponents().map(\.audioComponentDescription.uid))
-        return systemUIDs != cachedComponentUIDs
+        let components = cachedCompatibleComponents()
+        let systemUIDs = Set(components.map(\.audioComponentDescription.uid))
+        return systemUIDs != cachedComponentUIDs || !outdatedUIDs(in: components).isEmpty
+    }
+
+    /// Cached entries whose installed version differs from the one they were validated on.
+    private func outdatedUIDs(in components: [AVAudioUnitComponent]) -> Set<String> {
+        guard let results = componentCollection?.validationResults else { return [] }
+
+        let installedVersions = Dictionary(
+            components.map { ($0.audioComponentDescription.uid, $0.versionString) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        return Set(results.compactMap { result in
+            let uid = result.audioComponentDescription.uid
+            guard let installed = installedVersions[uid], installed != result.validatedVersionString else { return nil }
+            return uid
+        })
     }
 
     private func loadCacheData() throws -> CachedAudioUnitCollection {
@@ -117,7 +135,8 @@ extension AudioUnitCacheManager {
                     audioComponentDescription: audioComponentDescription,
                     component: component,
                     validation: validation,
-                    isEnabled: item.isEnabled
+                    isEnabled: item.isEnabled,
+                    validatedVersionString: item.version
                 )
             } else {
                 ComponentValidationResult(
@@ -191,7 +210,7 @@ extension AudioUnitCacheManager {
                 name: au.name,
                 manufacturerName: au.manufacturerName,
                 typeName: au.typeName,
-                version: au.versionString,
+                version: au.validatedVersionString,
                 componentType: acd.componentType,
                 componentSubType: acd.componentSubType,
                 componentManufacturer: acd.componentManufacturer,
@@ -219,7 +238,7 @@ extension AudioUnitCacheManager {
 
     // MARK: - Incremental Update
 
-    /// Brings a loaded cache in line with the system's components, validating only those added
+    /// Brings a loaded cache in line with the system's components, validating only those added or updated
     /// since it was written. With no cache loaded, validates everything.
     public func refreshCache() async throws {
         guard componentCollection != nil else {
@@ -231,7 +250,7 @@ extension AudioUnitCacheManager {
     }
 
     /// Incrementally updates the cache to the system's current components.
-    /// Validates only newly added components and removes stale entries, avoiding a full rescan.
+    /// Validates only components added or updated since the cache was written, and removes stale entries.
     func updateCache() async throws {
         try await runScan { [self] in try await performUpdateCache() }
         try await updateCacheIfRegistrationChanged()
@@ -241,13 +260,15 @@ extension AudioUnitCacheManager {
         let freshComponents = cachedCompatibleComponents()
         let systemUIDs = Set(freshComponents.map(\.audioComponentDescription.uid))
 
-        guard systemUIDs != cachedComponentUIDs else {
+        let updatedUIDs = outdatedUIDs(in: freshComponents)
+
+        guard systemUIDs != cachedComponentUIDs || !updatedUIDs.isEmpty else {
             Log.debug("*AU components unchanged, skipping rescan")
             return
         }
 
         let previousUIDs = cachedComponentUIDs ?? []
-        let newUIDs = systemUIDs.subtracting(previousUIDs)
+        let newUIDs = systemUIDs.subtracting(previousUIDs).union(updatedUIDs)
         let removedUIDs = previousUIDs.subtracting(systemUIDs)
 
         // Mutate a local copy; componentCollection setter is private to its defining file
@@ -260,7 +281,7 @@ extension AudioUnitCacheManager {
 
         if !newUIDs.isEmpty {
             let newComponents = freshComponents.filter { newUIDs.contains($0.audioComponentDescription.uid) }
-            Log.debug("*AU validating \(newComponents.count) new AU(s)")
+            Log.debug("*AU validating \(newComponents.count) new or updated AU(s)")
 
             if newComponents.count > 1 {
                 await send(event: .cachingStarted)

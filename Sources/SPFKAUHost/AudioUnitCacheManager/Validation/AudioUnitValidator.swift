@@ -29,57 +29,53 @@ public class AudioUnitValidator {
         return params as CFDictionary
     }
 
-    // MARK: - System Cache
-
-    /// Checks the system's cached validation result for a component.
-    /// Returns the cached result if available, nil otherwise.
-    static func cachedSystemValidationResult(
-        for component: AVAudioUnitComponent
-    ) -> AudioComponentValidationResult? {
-        var configInfo: Unmanaged<CFDictionary>?
-
-        let status = AudioComponentCopyConfigurationInfo(
-            component.audioComponent,
-            &configInfo
-        )
-
-        guard status == noErr,
-              let dict = configInfo?.takeRetainedValue() as? [String: Any],
-              let rawValue = dict[kAudioComponentConfigurationInfo_ValidationResult as String] as? UInt32
-        else {
-            return nil
-        }
-
-        return AudioComponentValidationResult(rawValue: rawValue)
-    }
-
     // MARK: - Validate
 
-    /// Validates the given Audio Unit component, falling back to external validation on macOS if needed.
-    public static func validate(component: AVAudioUnitComponent) async -> ValidationResult {
-        // Fast path: trust the system's cached validation result if it says "passed"
-        if let systemResult = cachedSystemValidationResult(for: component),
-           systemResult == .passed
-        {
-            return ValidationResult(result: .passed)
-        }
-
-        // note component.passesAUVal causes some AUs to hang indefinitely here
-
-        let result = await validateWithResults(component: component)
-
-        if result.result == .passed {
-            return ValidationResult(result: .passed)
-        }
-
+    /// The system's verdict when it passes. Anything else is decided by `auval -v`, which the
+    /// system API disagrees with itself against, and times out under load where `auval` does not.
+    /// `forceExternal` skips the system's stored verdict and lets `auval` decide every component.
+    public static func validate(component: AVAudioUnitComponent, forceExternal: Bool = false) async -> ValidationResult {
         #if os(macOS)
-            // If the system API already timed out, external validation will also hang — return the timeout result directly.
-            guard result.result != .timedOut else { return result }
-            return await validateExternal(component: component)
+            await validate(
+                component: component,
+                forceExternal: forceExternal,
+                executable: auval,
+                system: { await validateWithResults(component: $0) },
+                external: { await validateExternal(component: $0, executable: $1) }
+            )
         #else
-            return result
+            await validateWithResults(component: component)
         #endif
     }
+
+    #if os(macOS)
+        /// The routing behind `validate(component:forceExternal:)`, with both tiers supplied.
+        static func validate(
+            component: AVAudioUnitComponent,
+            forceExternal: Bool,
+            executable: URL?,
+            system: (AVAudioUnitComponent) async -> ValidationResult,
+            external: (AVAudioUnitComponent, URL) async -> ValidationResult
+        ) async -> ValidationResult {
+            guard let executable else {
+                return await system(component)
+            }
+
+            var systemResult: ValidationResult?
+
+            if !forceExternal {
+                let result = await system(component)
+                guard result.result != .passed else { return result }
+                systemResult = result
+            }
+
+            guard !Task.isCancelled else {
+                return systemResult ?? ValidationResult(result: .unknown)
+            }
+
+            return await external(component, executable)
+        }
+    #endif
 
     /// Uses AudioComponentValidateWithResults, whose `TimeOut` parameter guarantees the callback
     /// fires within 15 seconds. Cancellation returns `.unknown` at once; the late callback is dropped.

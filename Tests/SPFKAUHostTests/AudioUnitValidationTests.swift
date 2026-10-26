@@ -185,23 +185,6 @@ struct AudioUnitValidatorTests {
         #expect(result.result == .passed)
     }
 
-    @Test func cachedSystemValidationResultForAppleComponent() async throws {
-        guard let component = AVAudioUnitComponentManager.shared()
-            .components(matching: Self.auDelayDesc).first
-        else {
-            Issue.record("AUDelay not found on system")
-            return
-        }
-
-        // Apple components should have a cached system result
-        let cachedResult = AudioUnitValidator.cachedSystemValidationResult(for: component)
-
-        // May or may not be cached, but if present it should be .passed
-        if let cachedResult {
-            #expect(cachedResult == .passed)
-        }
-    }
-
     /// Forced, so the system really runs a validation for the cancellation to interrupt.
     @Test(.tags(.audioUnit)) func cancelledSystemValidationReturnsPromptly() async throws {
         let component = try #require(
@@ -253,6 +236,73 @@ struct AudioUnitValidatorTests {
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
             return url
         }
+
+        // MARK: Routing
+
+        private func route(
+            forceExternal: Bool = false,
+            executable: URL? = URL(fileURLWithPath: "/usr/bin/true"),
+            system: AudioComponentValidationResult,
+            external: AudioComponentValidationResult
+        ) async throws -> (result: AudioComponentValidationResult, calls: [String]) {
+            let calls = Locked<[String]>([])
+            let result = await AudioUnitValidator.validate(
+                component: try auDelay(),
+                forceExternal: forceExternal,
+                executable: executable,
+                system: { _ in
+                    calls.mutate { $0.append("system") }
+                    return AudioUnitValidator.ValidationResult(result: system)
+                },
+                external: { _, _ in
+                    calls.mutate { $0.append("external") }
+                    return AudioUnitValidator.ValidationResult(result: external)
+                }
+            )
+            return (result.result, calls.value)
+        }
+
+        @Test func systemTimeoutIsDecidedByExternal() async throws {
+            let routed = try await route(system: .timedOut, external: .passed)
+            #expect(routed.result == .passed)
+            #expect(routed.calls == ["system", "external"])
+        }
+
+        @Test func systemFailureIsDecidedByExternal() async throws {
+            let routed = try await route(system: .failed, external: .passed)
+            #expect(routed.result == .passed)
+            #expect(routed.calls == ["system", "external"])
+        }
+
+        @Test func systemPassSkipsExternal() async throws {
+            let routed = try await route(system: .passed, external: .failed)
+            #expect(routed.result == .passed)
+            #expect(routed.calls == ["system"])
+        }
+
+        @Test func forceExternalSkipsSystem() async throws {
+            let routed = try await route(forceExternal: true, system: .passed, external: .failed)
+            #expect(routed.result == .failed)
+            #expect(routed.calls == ["external"])
+        }
+
+        @Test func noExecutableKeepsSystemResult() async throws {
+            let routed = try await route(executable: nil, system: .failed, external: .passed)
+            #expect(routed.result == .failed)
+            #expect(routed.calls == ["system"])
+        }
+
+        @Test func cancelledSystemNonPassSkipsExternal() async throws {
+            let task = Task {
+                withUnsafeCurrentTask { $0?.cancel() }
+                return try await route(system: .unknown, external: .passed)
+            }
+            let routed = try await task.value
+            #expect(routed.result == .unknown)
+            #expect(routed.calls == ["system"])
+        }
+
+        // MARK: auval
 
         @Test func parseReadsEachVerdict() {
             #expect(AudioUnitValidator.parse(result: "...\nAU VALIDATION SUCCEEDED.\n") == .passed)

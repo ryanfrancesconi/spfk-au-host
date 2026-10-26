@@ -130,14 +130,14 @@ extension AudioUnitCacheManager {
 
     // MARK: - Creating
 
-    /// Called to refresh the internal Audio Unit cache by collecting system AUs
-    /// - Parameter completionHandler: handler
-    public func createCache() async throws {
-        try await runScan { [self] in try await performCreateCache() }
+    /// Validates every system AU and rewrites the cache. `forceExternal` has `auval` decide each
+    /// third-party plugin rather than accept the system's stored verdict.
+    public func createCache(forceExternal: Bool = false) async throws {
+        try await runScan { [self] in try await performCreateCache(forceExternal: forceExternal) }
         try await updateCacheIfRegistrationChanged()
     }
 
-    private func performCreateCache() async throws {
+    private func performCreateCache(forceExternal: Bool) async throws {
         await send(event: .cachingStarted)
 
         // preserve previous enabled values...
@@ -146,7 +146,7 @@ extension AudioUnitCacheManager {
 
         let components = cachedCompatibleComponents()
         let componentUIDs = Set(components.map(\.audioComponentDescription.uid))
-        let results = try await validate(components: components)
+        let results = try await validate(components: components, forceExternal: forceExternal)
 
         update(componentCollection: ComponentCollection(results: results))
         cachedComponentUIDs = componentUIDs

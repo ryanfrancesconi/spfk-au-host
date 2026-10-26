@@ -16,6 +16,8 @@ final class AudioUnitCacheLifecycleTests: BinTestCase, @unchecked Sendable {
     lazy var manager = AudioUnitCacheManager(cachesDirectory: bin)
     let recorder = EventRecorder()
     let validated = Locked<[String]>([])
+    /// The `forceExternal` the validator was last called with.
+    let forced = Locked(false)
     let registry: Locked<[AVAudioUnitComponent]>
 
     /// Apple components, which the test registry hands out in this order.
@@ -40,11 +42,13 @@ final class AudioUnitCacheLifecycleTests: BinTestCase, @unchecked Sendable {
 
         let registry = registry
         let validated = validated
+        let forced = forced
 
         await manager.update(delegate: recorder)
         await manager.update(cacheURL: nil)
         await manager.update(componentProvider: { registry.value })
-        await manager.update(componentValidator: { component in
+        await manager.update(componentValidator: { component, forceExternal in
+            forced.mutate { $0 = forceExternal }
             validated.mutate { $0.append(component.audioComponentDescription.uid) }
             return ComponentValidationResult(
                 audioComponentDescription: component.audioComponentDescription,
@@ -117,11 +121,22 @@ final class AudioUnitCacheLifecycleTests: BinTestCase, @unchecked Sendable {
         #expect(await manager.componentCollection?.validationResults.contains { $0.audioComponentDescription.uid == uid } == true)
     }
 
+    @Test func forcedRescanReachesTheValidator() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        try await manager.createCache(forceExternal: true)
+        #expect(forced.value == true)
+
+        try await manager.createCache()
+        #expect(forced.value == false)
+    }
+
     // MARK: - One scan at a time
 
     /// Holds every validation until the test opens the gate.
     func useGatedValidator(_ gate: Gate) async {
-        await manager.update(componentValidator: { component in
+        await manager.update(componentValidator: { component, _ in
             await gate.wait()
             return ComponentValidationResult(
                 audioComponentDescription: component.audioComponentDescription,

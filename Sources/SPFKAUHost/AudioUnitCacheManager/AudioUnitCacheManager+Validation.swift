@@ -61,7 +61,10 @@ extension AudioUnitCacheManager {
     /// Validates the given components (or all compatible components if nil) and returns their validation results.
     /// Uses a TaskGroup with a sliding window of concurrent validations for throughput. Runs in the
     /// caller's task, so cancelling a scan cancels the validations in flight.
-    public func validate(components: [AVAudioUnitComponent]? = nil) async throws -> [ComponentValidationResult] {
+    public func validate(
+        components: [AVAudioUnitComponent]? = nil,
+        forceExternal: Bool = false
+    ) async throws -> [ComponentValidationResult] {
         let maxConcurrency = 4
 
         let resolvedComponents = components ?? cachedCompatibleComponents()
@@ -80,7 +83,7 @@ extension AudioUnitCacheManager {
             for i in 0 ..< initialBatch {
                 let component = resolvedComponents[i]
                 taskGroup.addTask {
-                    await validator(component)
+                    await validator(component, forceExternal)
                 }
             }
 
@@ -106,7 +109,7 @@ extension AudioUnitCacheManager {
                 if nextIndex < count {
                     let component = resolvedComponents[nextIndex]
                     taskGroup.addTask {
-                        await validator(component)
+                        await validator(component, forceExternal)
                     }
                     nextIndex += 1
                 }
@@ -116,7 +119,7 @@ extension AudioUnitCacheManager {
         }
     }
 
-    static func validate(component: AVAudioUnitComponent) async -> ComponentValidationResult {
+    static func validate(component: AVAudioUnitComponent, forceExternal: Bool) async -> ComponentValidationResult {
         guard shouldValidate(audioComponentDescription: component.audioComponentDescription) else {
             return ComponentValidationResult(
                 audioComponentDescription: component.audioComponentDescription,
@@ -125,7 +128,7 @@ extension AudioUnitCacheManager {
             )
         }
 
-        let validationResult = await AudioUnitValidator.validate(component: component)
+        let validationResult = await AudioUnitValidator.validate(component: component, forceExternal: forceExternal)
 
         if validationResult.result != .passed {
             Log.error("*AU validation failed for", component.resolvedName, ". More info run in terminal:", component.audioComponentDescription.validationCommand)

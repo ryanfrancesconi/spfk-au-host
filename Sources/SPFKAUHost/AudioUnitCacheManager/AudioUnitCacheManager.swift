@@ -118,12 +118,12 @@ public actor AudioUnitCacheManager {
         invalidateCachedComponents()
     }
 
-    /// Validates one component during a scan.
-    var componentValidator: @Sendable (AVAudioUnitComponent) async -> ComponentValidationResult = {
-        await AudioUnitCacheManager.validate(component: $0)
+    /// Validates one component during a scan; the flag is the scan's `forceExternal`.
+    var componentValidator: @Sendable (AVAudioUnitComponent, Bool) async -> ComponentValidationResult = {
+        await AudioUnitCacheManager.validate(component: $0, forceExternal: $1)
     }
 
-    func update(componentValidator: @escaping @Sendable (AVAudioUnitComponent) async -> ComponentValidationResult) {
+    func update(componentValidator: @escaping @Sendable (AVAudioUnitComponent, Bool) async -> ComponentValidationResult) {
         self.componentValidator = componentValidator
     }
 

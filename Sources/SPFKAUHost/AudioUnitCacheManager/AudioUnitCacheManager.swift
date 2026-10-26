@@ -107,13 +107,30 @@ public actor AudioUnitCacheManager {
     /// Cached result of the compatible components query. Invalidated on componentRegistrationsChanged.
     private var _cachedCompatibleComponents: [AVAudioUnitComponent]?
 
+    /// The system's compatible components. Replaceable so tests need not validate every installed plugin.
+    var componentProvider: @Sendable () -> [AVAudioUnitComponent] = { AudioUnitCacheManager.compatibleComponents }
+
+    func update(componentProvider: @escaping @Sendable () -> [AVAudioUnitComponent]) {
+        self.componentProvider = componentProvider
+        invalidateCachedComponents()
+    }
+
+    /// Validates one component during a scan.
+    var componentValidator: @Sendable (AVAudioUnitComponent) async -> ComponentValidationResult = {
+        await AudioUnitCacheManager.validate(component: $0)
+    }
+
+    func update(componentValidator: @escaping @Sendable (AVAudioUnitComponent) async -> ComponentValidationResult) {
+        self.componentValidator = componentValidator
+    }
+
     /// Returns the cached compatible components, querying the system if not yet cached.
     public func cachedCompatibleComponents() -> [AVAudioUnitComponent] {
         if let cached = _cachedCompatibleComponents {
             return cached
         }
 
-        let components = Self.compatibleComponents
+        let components = componentProvider()
         _cachedCompatibleComponents = components
 
         Log.debug("_cachedCompatibleComponents = \(components.count) AUs")
@@ -198,25 +215,32 @@ public actor AudioUnitCacheManager {
         cacheObservation.eventHandler = { [weak self] event in
             guard let self else { return }
             Task {
-                await self.invalidateCachedComponents()
-
-                guard case .componentRegistrationsChanged = event else { return }
-
-                guard await !self.isScanning else {
-                    Log.debug("*AU component change detected but scan already in progress, skipping")
+                guard case .componentRegistrationsChanged = event else {
+                    await self.invalidateCachedComponents()
                     return
                 }
 
-                do {
-                    try await self.updateCache()
-                } catch {
-                    Log.error(error)
-                    await self.send(event: .error(error.localizedDescription))
-                }
+                await self.handleComponentRegistrationsChanged()
             }
         }
 
         cacheObservation.start()
+    }
+
+    func handleComponentRegistrationsChanged() async {
+        invalidateCachedComponents()
+
+        guard !isScanning else {
+            Log.debug("*AU component change detected but scan already in progress, skipping")
+            return
+        }
+
+        do {
+            try await updateCache()
+        } catch {
+            Log.error(error)
+            await send(event: .error(error.localizedDescription))
+        }
     }
 
     func send(event: AudioUnitCacheEvent) async {

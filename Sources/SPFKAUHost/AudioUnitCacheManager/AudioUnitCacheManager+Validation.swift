@@ -65,6 +65,7 @@ extension AudioUnitCacheManager {
 
         // Snapshot actor state before entering the unstructured Task
         let resolvedComponents = components ?? cachedCompatibleComponents()
+        let validator = componentValidator
 
         scanTask = Task<[ComponentValidationResult], Error>(priority: .high) {
             let count = resolvedComponents.count
@@ -81,7 +82,7 @@ extension AudioUnitCacheManager {
                 for i in 0 ..< initialBatch {
                     let component = resolvedComponents[i]
                     taskGroup.addTask {
-                        await Self.validate(component: component)
+                        await validator(component)
                     }
                 }
 
@@ -107,7 +108,7 @@ extension AudioUnitCacheManager {
                     if nextIndex < count {
                         let component = resolvedComponents[nextIndex]
                         taskGroup.addTask {
-                            await Self.validate(component: component)
+                            await validator(component)
                         }
                         nextIndex += 1
                     }
@@ -121,7 +122,7 @@ extension AudioUnitCacheManager {
         return try await scanTask?.value ?? []
     }
 
-    private static func validate(component: AVAudioUnitComponent) async -> ComponentValidationResult {
+    static func validate(component: AVAudioUnitComponent) async -> ComponentValidationResult {
         guard shouldValidate(audioComponentDescription: component.audioComponentDescription) else {
             return ComponentValidationResult(
                 audioComponentDescription: component.audioComponentDescription,

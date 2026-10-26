@@ -163,6 +163,9 @@ extension AudioUnitCacheManager {
     }
 
     private func performCreateCache(forceExternal: Bool) async throws {
+        // Left in for measuring a scan; logs only when PhaseTrace is enabled.
+        var trace = PhaseTrace("AUTRACE")
+
         await send(event: .cachingStarted)
 
         // preserve previous enabled values...
@@ -172,6 +175,7 @@ extension AudioUnitCacheManager {
         let components = cachedCompatibleComponents()
         let componentUIDs = Set(components.map(\.audioComponentDescription.uid))
         let results = try await validate(components: components, forceExternal: forceExternal)
+        trace.mark("full scan validated \(components.count) AU(s)\(forceExternal ? " with auval" : "")")
 
         update(componentCollection: ComponentCollection(results: results))
         cachedComponentUIDs = componentUIDs
@@ -182,6 +186,7 @@ extension AudioUnitCacheManager {
         }
 
         try await writeCache(componentUIDs: componentUIDs)
+        trace.mark("full scan wrote the cache")
 
         await send(event: .cacheUpdated)
 
@@ -287,7 +292,9 @@ extension AudioUnitCacheManager {
                 await send(event: .cachingStarted)
             }
 
+            var trace = PhaseTrace("AUTRACE")
             let newResults = try await validate(components: newComponents)
+            trace.mark("update validated \(newComponents.count) new or updated AU(s)")
             for result in newResults {
                 updated?.insert(result: result)
             }

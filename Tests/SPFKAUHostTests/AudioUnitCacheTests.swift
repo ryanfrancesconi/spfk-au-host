@@ -123,6 +123,71 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         #expect(result.manufacturerName == "Test")
     }
 
+    @Test func parseCacheReadsNewFormat() async throws {
+        defer { await tearDown() }
+
+        let json = """
+        {
+            "cachedComponentUIDs": [],
+            "audioUnits": [
+                {
+                    "name": "FailedAU",
+                    "manufacturerName": "Test",
+                    "typeName": "Effect",
+                    "version": "1.0",
+                    "componentType": 0,
+                    "componentSubType": 0,
+                    "componentManufacturer": 0,
+                    "componentFlags": 0,
+                    "componentFlagsMask": 0,
+                    "validationResult": \(AudioComponentValidationResult.unauthorizedError_Init.rawValue),
+                    "reason": "Initialize returned -50",
+                    "isEnabled": true
+                }
+            ]
+        }
+        """
+
+        let cacheURL = bin.appendingPathComponent("AudioUnitCache.json")
+        try json.write(to: cacheURL, atomically: true, encoding: .utf8)
+        await manager.update(cacheURL: cacheURL)
+
+        let result = try #require(try await manager.loadCache().results.first)
+        #expect(result.validation.result == .unauthorizedError_Init)
+        #expect(result.validation.reason == "Initialize returned -50")
+    }
+
+    @Test func writeCacheRoundTripsTheReason() async throws {
+        defer { await tearDown() }
+
+        await manager.update(delegate: self)
+        await manager.update(cacheURL: nil)
+
+        let desc = AudioComponentDescription(
+            componentType: 1635083896,
+            componentSubType: 1684368505,
+            componentManufacturer: 0x1234_5678,
+            componentFlags: 0,
+            componentFlagsMask: 0
+        )
+
+        let result = ComponentValidationResult(
+            audioComponentDescription: desc,
+            validation: AudioUnitValidator.ValidationResult(result: .failed, reason: "Parameter did not retain set value"),
+            name: "FailingAU",
+            typeName: "Effect",
+            manufacturerName: "Vendor",
+            versionString: "1.0"
+        )
+
+        await manager.update(componentCollection: ComponentCollection(results: [result]))
+        try await manager.writeCache(componentUIDs: [desc.uid])
+
+        let loaded = try #require(try await manager.loadCache().results.first)
+        #expect(loaded.validation.result == .failed)
+        #expect(loaded.validation.reason == "Parameter did not retain set value")
+    }
+
     // MARK: - Validation Is Needed
 
     @Test func validationIsNeededWhenUIDsMatch() async throws {
@@ -265,7 +330,8 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         #expect(json.contains("\"cachedComponentUIDs\""))
         #expect(json.contains("\"audioUnits\""))
         #expect(json.contains("TimeoutAU"))
-        #expect(json.contains("Timed out"))
+        #expect(json.contains("\"validationResult\" : \(AudioComponentValidationResult.timedOut.rawValue)"))
+        #expect(!json.contains("\"validation\""))
     }
 
     // MARK: - Remove Cache

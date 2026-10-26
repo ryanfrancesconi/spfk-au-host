@@ -13,13 +13,57 @@ public class AudioUnitValidator {
         public var result: AudioComponentValidationResult
         /// Optional output text from the validation process.
         public var output: String?
+        /// Why a component did not pass, for the user: the validator's error line, or the timeout.
+        public var reason: String?
+
+        public init(result: AudioComponentValidationResult, output: String? = nil, reason: String? = nil) {
+            self.result = result
+            self.output = output
+            self.reason = reason
+        }
+
+        /// A result whose reason is read from the validator's output, or from `timeout` when it timed out.
+        init(result: AudioComponentValidationResult, outputLines lines: [String], timeout: Duration) {
+            let reason: String? = switch result {
+            case .passed: nil
+            case .timedOut: AudioUnitValidator.timeoutReason(timeout)
+            default: AudioUnitValidator.reason(fromOutput: lines)
+            }
+
+            self.init(result: result, output: lines.isEmpty ? nil : lines.joined(separator: "\n"), reason: reason)
+        }
     }
+
+    /// The first `FATAL ERROR` or `ERROR:` line, trimmed, without an `ERROR: ` prefix.
+    /// `WARNING:` lines are not reasons: passing plugins print them too.
+    static func reason(fromOutput lines: [String]) -> String? {
+        for line in lines {
+            let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if line.hasPrefix("FATAL ERROR") {
+                return line
+            }
+
+            if line.hasPrefix("ERROR:") {
+                return String(line.dropFirst("ERROR:".count)).trimmingCharacters(in: .whitespaces)
+            }
+        }
+
+        return nil
+    }
+
+    static func timeoutReason(_ timeout: Duration) -> String {
+        "No response within \(timeout.components.seconds) seconds"
+    }
+
+    /// How long the system validator may take before it reports `.timedOut`.
+    static let systemTimeout: Duration = .seconds(15)
 
     /// `force` makes the system validate again rather than replay the verdict it stored for this version.
     private static func validateParams(force: Bool) -> CFDictionary {
         var params: [String: Any] = [
             kAudioComponentValidationParameter_LoadOutOfProcess: 1,
-            kAudioComponentValidationParameter_TimeOut: 15,
+            kAudioComponentValidationParameter_TimeOut: systemTimeout.components.seconds,
         ]
 
         if force {
@@ -86,8 +130,9 @@ public class AudioUnitValidator {
             await withCheckedContinuation { continuation in
                 guard pending.store(continuation) else { return }
 
-                let status = AudioComponentValidateWithResults(component.audioComponent, validateParams(force: force)) { result, _ in
-                    pending.resume(returning: ValidationResult(result: result))
+                let status = AudioComponentValidateWithResults(component.audioComponent, validateParams(force: force)) { result, details in
+                    let lines = (details as NSDictionary)["Output"] as? [String] ?? []
+                    pending.resume(returning: ValidationResult(result: result, outputLines: lines, timeout: systemTimeout))
                 }
 
                 if status != noErr {
@@ -145,13 +190,13 @@ public class AudioUnitValidator {
             do {
                 output = try await ProcessRunner.run(cmd, arguments: args, timeout: timeout)
             } catch {
-                return ValidationResult(result: .failed, output: error.localizedDescription)
+                return ValidationResult(result: .failed, output: error.localizedDescription, reason: error.localizedDescription)
             }
 
             let text = output.stdout + output.stderr
             let result = output.timedOut ? .timedOut : parse(result: text)
 
-            return ValidationResult(result: result, output: text)
+            return ValidationResult(result: result, outputLines: text.components(separatedBy: .newlines), timeout: timeout)
         }
 
         static func parse(result: String) -> AudioComponentValidationResult {

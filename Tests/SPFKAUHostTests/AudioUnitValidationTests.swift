@@ -302,6 +302,44 @@ struct AudioUnitValidatorTests {
             #expect(routed.calls == ["system"])
         }
 
+        // MARK: Reason
+
+        @Test func reasonIsTheErrorLineWithoutItsPrefix() {
+            let lines = [
+                "VERIFYING DEFAULT SCOPE FORMATS:",
+                "WARNING: Unit does not declare a channel layout",
+                "  ERROR: Parameter did not retain set value when Initialized",
+                "ERROR: a second error",
+            ]
+            #expect(AudioUnitValidator.reason(fromOutput: lines) == "Parameter did not retain set value when Initialized")
+        }
+
+        @Test func fatalErrorIsKeptWhole() {
+            let lines = ["FATAL ERROR: OpenAComponent: result: -1,0xFFFFFFFF"]
+            #expect(AudioUnitValidator.reason(fromOutput: lines) == "FATAL ERROR: OpenAComponent: result: -1,0xFFFFFFFF")
+        }
+
+        @Test func warningsAreNotReasons() {
+            #expect(AudioUnitValidator.reason(fromOutput: ["WARNING: something", "AU VALIDATION SUCCEEDED."]) == nil)
+        }
+
+        @Test func externalFailureCarriesItsReason() async throws {
+            let fake = try fakeAuval("echo 'ERROR: Cannot get Component Name strings'")
+            defer { try? FileManager.default.removeItem(at: fake) }
+
+            let result = await AudioUnitValidator.validateExternal(component: try auDelay(), executable: fake)
+            #expect(result.result == .failed)
+            #expect(result.reason == "Cannot get Component Name strings")
+        }
+
+        @Test func externalTimeoutReasonNamesTheTimeout() async throws {
+            let fake = try fakeAuval("sleep 20")
+            defer { try? FileManager.default.removeItem(at: fake) }
+
+            let result = await AudioUnitValidator.validateExternal(component: try auDelay(), executable: fake, timeout: .seconds(1))
+            #expect(result.reason == "No response within 1 seconds")
+        }
+
         // MARK: auval
 
         @Test func parseReadsEachVerdict() {

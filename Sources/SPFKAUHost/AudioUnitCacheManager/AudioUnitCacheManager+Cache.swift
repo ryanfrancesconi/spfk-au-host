@@ -18,7 +18,11 @@ private struct CachedAudioUnit: Codable {
     let componentManufacturer: UInt32
     let componentFlags: UInt32
     let componentFlagsMask: UInt32
-    let validation: String
+    /// The result's description, as caches written before `validationResult` stored it. Read, never written.
+    var validation: String?
+    /// `AudioComponentValidationResult.rawValue`.
+    var validationResult: UInt32?
+    var reason: String?
     let isEnabled: Bool
 }
 
@@ -97,13 +101,15 @@ extension AudioUnitCacheManager {
             component = componentsByUID[audioComponentDescription.uid]
         }
 
-        var validationResult: AudioComponentValidationResult?
+        let validationResult = item.validationResult.flatMap(AudioComponentValidationResult.init(rawValue:))
+            ?? item.validation.flatMap(AudioComponentValidationResult.init(description:))
 
-        if let value = AudioComponentValidationResult(description: item.validation) {
-            validationResult = value
+        if validationResult == nil {
+            // Unreadable, so the next refresh treats it as new and validates it again.
+            cachedComponentUIDs?.remove(audioComponentDescription.uid)
         }
 
-        let validation = AudioUnitValidator.ValidationResult(result: validationResult ?? .passed)
+        let validation = AudioUnitValidator.ValidationResult(result: validationResult ?? .unknown, reason: item.reason)
 
         let result: ComponentValidationResult =
             if let component {
@@ -191,7 +197,8 @@ extension AudioUnitCacheManager {
                 componentManufacturer: acd.componentManufacturer,
                 componentFlags: acd.componentFlags,
                 componentFlagsMask: acd.componentFlagsMask,
-                validation: au.validation.result.description,
+                validationResult: au.validation.result.rawValue,
+                reason: au.validation.reason,
                 isEnabled: au.isEnabled
             )
         }

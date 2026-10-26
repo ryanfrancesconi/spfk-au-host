@@ -132,6 +132,39 @@ final class AudioUnitCacheLifecycleTests: BinTestCase, @unchecked Sendable {
         #expect(forced.value == false)
     }
 
+    @Test func unreadableCachedResultIsRevalidated() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        let cached = Array(components.prefix(Self.initialCount))
+        let bogus = cached[1].audioComponentDescription.uid
+
+        let entries = cached.map { component in
+            let acd = component.audioComponentDescription
+            let validation = acd.uid == bogus ? "Bogus" : "Passed"
+            return """
+            {"name": "\(component.name)", "manufacturerName": "Apple", "typeName": "Effect",
+             "version": "\(component.versionString)", "componentType": \(acd.componentType),
+             "componentSubType": \(acd.componentSubType), "componentManufacturer": \(acd.componentManufacturer),
+             "componentFlags": \(acd.componentFlags), "componentFlagsMask": \(acd.componentFlagsMask),
+             "validation": "\(validation)", "isEnabled": true}
+            """
+        }
+
+        let uids = cached.map { "\"\($0.audioComponentDescription.uid)\"" }
+        let json = "{\"cachedComponentUIDs\": [\(uids.joined(separator: ","))], \"audioUnits\": [\(entries.joined(separator: ","))]}"
+
+        let url = try #require(await manager.cacheURL)
+        try json.write(to: url, atomically: true, encoding: .utf8)
+
+        try await manager.load()
+        let loaded = await manager.componentCollection?.validationResults.first { $0.audioComponentDescription.uid == bogus }
+        #expect(loaded?.validation.result == .unknown)
+
+        try await manager.refreshCache()
+        #expect(validated.value == [bogus])
+    }
+
     // MARK: - One scan at a time
 
     /// Holds every validation until the test opens the gate.

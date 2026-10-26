@@ -15,12 +15,18 @@ public class AudioUnitValidator {
         public var output: String?
     }
 
-    // kAudioComponentValidationParameter_ForceValidation: true
-    private static var validateParams: CFDictionary {
-        [
+    /// `force` makes the system validate again rather than replay the verdict it stored for this version.
+    private static func validateParams(force: Bool) -> CFDictionary {
+        var params: [String: Any] = [
             kAudioComponentValidationParameter_LoadOutOfProcess: 1,
             kAudioComponentValidationParameter_TimeOut: 15,
-        ] as CFDictionary
+        ]
+
+        if force {
+            params[kAudioComponentValidationParameter_ForceValidation] = 1
+        }
+
+        return params as CFDictionary
     }
 
     // MARK: - System Cache
@@ -75,14 +81,26 @@ public class AudioUnitValidator {
         #endif
     }
 
-    /// Uses AudioComponentValidateWithResults with a checked continuation.
-    /// The timeout is handled by kAudioComponentValidationParameter_TimeOut in the params dictionary,
-    /// which guarantees the callback fires within 15 seconds.
-    static func validateWithResults(component: AVAudioUnitComponent) async -> ValidationResult {
-        await withCheckedContinuation { continuation in
-            AudioComponentValidateWithResults(component.audioComponent, validateParams) { result, _ in
-                continuation.resume(returning: ValidationResult(result: result))
+    /// Uses AudioComponentValidateWithResults, whose `TimeOut` parameter guarantees the callback
+    /// fires within 15 seconds. Cancellation returns `.unknown` at once; the late callback is dropped.
+    static func validateWithResults(component: AVAudioUnitComponent, force: Bool = false) async -> ValidationResult {
+        let pending = PendingValidation()
+
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                guard pending.store(continuation) else { return }
+
+                let status = AudioComponentValidateWithResults(component.audioComponent, validateParams(force: force)) { result, _ in
+                    pending.resume(returning: ValidationResult(result: result))
+                }
+
+                if status != noErr {
+                    Log.error("*AU AudioComponentValidateWithResults returned", status, "for", component.name)
+                    pending.resume(returning: ValidationResult(result: .unknown))
+                }
             }
+        } onCancel: {
+            pending.resume(returning: ValidationResult(result: .unknown))
         }
     }
 
@@ -155,6 +173,37 @@ public class AudioUnitValidator {
             }
         }
     #endif
+}
+
+/// A validation's continuation, resumed once by whichever of the callback and cancellation comes first.
+private final class PendingValidation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<AudioUnitValidator.ValidationResult, Never>?
+    private var isFinished = false
+
+    /// Returns false, having resumed `continuation` with `.unknown`, when cancellation came first.
+    func store(_ continuation: CheckedContinuation<AudioUnitValidator.ValidationResult, Never>) -> Bool {
+        let isFinished = lock.withLock {
+            if !self.isFinished { self.continuation = continuation }
+            return self.isFinished
+        }
+
+        if isFinished {
+            continuation.resume(returning: AudioUnitValidator.ValidationResult(result: .unknown))
+        }
+
+        return !isFinished
+    }
+
+    func resume(returning result: AudioUnitValidator.ValidationResult) {
+        let continuation = lock.withLock {
+            isFinished = true
+            defer { self.continuation = nil }
+            return self.continuation
+        }
+
+        continuation?.resume(returning: result)
+    }
 }
 
 extension AudioComponentValidationResult {

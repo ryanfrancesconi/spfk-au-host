@@ -59,67 +59,61 @@ extension AudioUnitCacheManager {
     }
 
     /// Validates the given components (or all compatible components if nil) and returns their validation results.
-    /// Uses a TaskGroup with a sliding window of concurrent validations for throughput.
+    /// Uses a TaskGroup with a sliding window of concurrent validations for throughput. Runs in the
+    /// caller's task, so cancelling a scan cancels the validations in flight.
     public func validate(components: [AVAudioUnitComponent]? = nil) async throws -> [ComponentValidationResult] {
         let maxConcurrency = 4
 
-        // Snapshot actor state before entering the unstructured Task
         let resolvedComponents = components ?? cachedCompatibleComponents()
         let validator = componentValidator
+        let count = resolvedComponents.count
 
-        scanTask = Task<[ComponentValidationResult], Error>(priority: .high) {
-            let count = resolvedComponents.count
+        return try await withThrowingTaskGroup(
+            of: ComponentValidationResult.self,
+            returning: [ComponentValidationResult].self
+        ) { taskGroup in
+            try Task.checkCancellation()
 
-            return try await withThrowingTaskGroup(
-                of: ComponentValidationResult.self,
-                returning: [ComponentValidationResult].self
-            ) { taskGroup in
+            // Seed the initial batch
+            let initialBatch = min(maxConcurrency, count)
+
+            for i in 0 ..< initialBatch {
+                let component = resolvedComponents[i]
+                taskGroup.addTask {
+                    await validator(component)
+                }
+            }
+
+            var results = [ComponentValidationResult]()
+            results.reserveCapacity(count)
+            var nextIndex = initialBatch
+            var completedCount = 0
+
+            // As each task completes, report progress and enqueue the next
+            for try await result in taskGroup {
                 try Task.checkCancellation()
 
-                // Seed the initial batch
-                let initialBatch = min(maxConcurrency, count)
+                results.append(result)
 
-                for i in 0 ..< initialBatch {
-                    let component = resolvedComponents[i]
+                completedCount += 1
+
+                await self.send(event: .validating(
+                    name: result.name,
+                    completed: completedCount,
+                    count: count
+                ))
+
+                if nextIndex < count {
+                    let component = resolvedComponents[nextIndex]
                     taskGroup.addTask {
                         await validator(component)
                     }
+                    nextIndex += 1
                 }
-
-                var results = [ComponentValidationResult]()
-                results.reserveCapacity(count)
-                var nextIndex = initialBatch
-                var completedCount = 0
-
-                // As each task completes, report progress and enqueue the next
-                for try await result in taskGroup {
-                    try Task.checkCancellation()
-
-                    results.append(result)
-
-                    completedCount += 1
-
-                    await self.send(event: .validating(
-                        name: result.name,
-                        completed: completedCount,
-                        count: count
-                    ))
-
-                    if nextIndex < count {
-                        let component = resolvedComponents[nextIndex]
-                        taskGroup.addTask {
-                            await validator(component)
-                        }
-                        nextIndex += 1
-                    }
-                }
-
-                return results.sorted { $0.manufacturerName < $1.manufacturerName }
             }
-        }
 
-        defer { scanTask = nil }
-        return try await scanTask?.value ?? []
+            return results.sorted { $0.manufacturerName < $1.manufacturerName }
+        }
     }
 
     static func validate(component: AVAudioUnitComponent) async -> ComponentValidationResult {

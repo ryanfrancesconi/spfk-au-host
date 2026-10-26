@@ -133,6 +133,11 @@ extension AudioUnitCacheManager {
     /// Called to refresh the internal Audio Unit cache by collecting system AUs
     /// - Parameter completionHandler: handler
     public func createCache() async throws {
+        try await runScan { [self] in try await performCreateCache() }
+        try await updateCacheIfRegistrationChanged()
+    }
+
+    private func performCreateCache() async throws {
         await send(event: .cachingStarted)
 
         // preserve previous enabled values...
@@ -159,8 +164,6 @@ extension AudioUnitCacheManager {
         if !failed.isEmpty {
             await send(event: .validationComplete(failed: failed))
         }
-
-        try await updateCacheIfRegistrationChanged()
     }
 
     // MARK: - Writing
@@ -223,6 +226,11 @@ extension AudioUnitCacheManager {
     /// Incrementally updates the cache to the system's current components.
     /// Validates only newly added components and removes stale entries, avoiding a full rescan.
     func updateCache() async throws {
+        try await runScan { [self] in try await performUpdateCache() }
+        try await updateCacheIfRegistrationChanged()
+    }
+
+    private func performUpdateCache() async throws {
         let freshComponents = cachedCompatibleComponents()
         let systemUIDs = Set(freshComponents.map(\.audioComponentDescription.uid))
 
@@ -267,8 +275,6 @@ extension AudioUnitCacheManager {
         if !failed.isEmpty {
             await send(event: .validationComplete(failed: failed))
         }
-
-        try await updateCacheIfRegistrationChanged()
     }
 
     /// Catches up with a registration change that arrived while a scan was running.

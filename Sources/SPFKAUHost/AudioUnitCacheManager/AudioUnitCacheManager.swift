@@ -97,8 +97,8 @@ public actor AudioUnitCacheManager {
         componentCollection?.update(audioComponentDescription: audioComponentDescription, isEnabled: isEnabled)
     }
 
-    /// Task to abort scanning
-    var scanTask: Task<[ComponentValidationResult], Error>?
+    /// The scan in flight: a whole `createCache()` or `updateCache()`, from its first event to its last.
+    var scanTask: Task<Void, Error>?
 
     // MARK: - Observation
 
@@ -172,12 +172,34 @@ public actor AudioUnitCacheManager {
         self.delegate = delegate
     }
 
-    /// Stops observation, cancels any scan in progress and releases the component collection.
-    /// `load()` may be called again afterwards.
-    public func dispose() {
+    /// Stops observation, cancels any scan in progress, waits for it to end and releases the
+    /// component collection. `load()` may be called again afterwards.
+    public func dispose() async {
         cacheObservation.stop()
-        scanTask?.cancel()
+        registrationChangedDuringScan = false
+
+        if let scanTask {
+            scanTask.cancel()
+            _ = await scanTask.result
+        }
+
         componentCollection = nil
+    }
+
+    /// Runs `operation` as the only scan, once any scan already in flight has ended.
+    func runScan(_ operation: @escaping @Sendable () async throws -> Void) async throws {
+        while let existing = scanTask {
+            _ = await existing.result
+            if scanTask == existing { scanTask = nil }
+        }
+
+        let task = Task(priority: .high) { try await operation() }
+        scanTask = task
+
+        let result = await task.result
+        if scanTask == task { scanTask = nil }
+
+        try result.get()
     }
 
     /// Cancels any in-progress component validation scan.
@@ -241,6 +263,8 @@ public actor AudioUnitCacheManager {
 
         do {
             try await updateCache()
+        } catch is CancellationError {
+            Log.debug("*AU scan cancelled")
         } catch {
             Log.error(error)
             await send(event: .error(error.localizedDescription))

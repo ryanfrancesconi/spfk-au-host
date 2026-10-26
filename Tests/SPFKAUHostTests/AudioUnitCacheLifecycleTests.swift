@@ -116,9 +116,134 @@ final class AudioUnitCacheLifecycleTests: BinTestCase, @unchecked Sendable {
         #expect(validated.value.contains(uid))
         #expect(await manager.componentCollection?.validationResults.contains { $0.audioComponentDescription.uid == uid } == true)
     }
+
+    // MARK: - One scan at a time
+
+    /// Holds every validation until the test opens the gate.
+    func useGatedValidator(_ gate: Gate) async {
+        await manager.update(componentValidator: { component in
+            await gate.wait()
+            return ComponentValidationResult(
+                audioComponentDescription: component.audioComponentDescription,
+                component: component,
+                validation: AudioUnitValidator.ValidationResult(result: .passed)
+            )
+        })
+    }
+
+    @Test func overlappingScansRunOneAtATime() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        let gate = Gate()
+        await useGatedValidator(gate)
+
+        let manager = manager
+        let first = Task { try await manager.createCache() }
+        #expect(await poll { gate.waiting > 0 })
+
+        let second = Task { try await manager.createCache() }
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(recorder.cachingStartedCount == 1)
+
+        gate.open()
+        try await first.value
+        try await second.value
+        #expect(recorder.cachingStartedCount == 2)
+    }
+
+    @Test func disposeWaitsForTheScan() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        let gate = Gate()
+        await useGatedValidator(gate)
+
+        let manager = manager
+        let scan = Task { try await manager.createCache() }
+        #expect(await poll { gate.waiting > 0 })
+
+        let disposed = Locked(false)
+        let disposal = Task {
+            await manager.dispose()
+            disposed.mutate { $0 = true }
+        }
+
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(disposed.value == false)
+
+        gate.open()
+        await disposal.value
+        #expect(await manager.isScanning == false)
+        _ = await scan.result
+    }
+
+    @Test func cancelledRegistrationUpdateSendsNoError() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        let added = 4
+        try #require(components.count >= Self.initialCount + added)
+
+        try await manager.createCache()
+
+        let manager = manager
+        recorder.onEvent = { event in
+            if case .validating(_, completed: 1, _) = event {
+                await manager.cancelScan()
+            }
+        }
+
+        let components = components
+        registry.mutate { $0.append(contentsOf: components[Self.initialCount ..< Self.initialCount + added]) }
+        await manager.handleComponentRegistrationsChanged()
+
+        #expect(recorder.errors.isEmpty)
+    }
 }
 
 // MARK: - Helpers
+
+/// Polls `condition` until it holds or `timeout` passes, and returns whether it held.
+func poll(timeout: Duration = .seconds(5), _ condition: () async -> Bool) async -> Bool {
+    let deadline = ContinuousClock.now + timeout
+    while ContinuousClock.now < deadline {
+        if await condition() { return true }
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+    return await condition()
+}
+
+/// Suspends callers of `wait()` until `open()`, ignoring cancellation as a blocking validation does.
+final class Gate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isOpen = false
+    private var continuations: [CheckedContinuation<Void, Never>] = []
+
+    var waiting: Int {
+        lock.withLock { continuations.count }
+    }
+
+    func wait() async {
+        await withCheckedContinuation { continuation in
+            let resumeNow = lock.withLock {
+                if isOpen { return true }
+                continuations.append(continuation)
+                return false
+            }
+            if resumeNow { continuation.resume() }
+        }
+    }
+
+    func open() {
+        let waiting = lock.withLock {
+            isOpen = true
+            defer { continuations = [] }
+            return continuations
+        }
+        waiting.forEach { $0.resume() }
+    }
+}
 
 /// A value shared between a test and the closures it hands the manager.
 final class Locked<Value>: @unchecked Sendable {

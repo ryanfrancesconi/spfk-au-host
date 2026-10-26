@@ -202,6 +202,21 @@ struct AudioUnitValidatorTests {
         }
     }
 
+    /// Forced, so the system really runs a validation for the cancellation to interrupt.
+    @Test(.tags(.audioUnit)) func cancelledSystemValidationReturnsPromptly() async throws {
+        let component = try #require(
+            AVAudioUnitComponentManager.shared().components(matching: Self.auDelayDesc).first
+        )
+
+        let start = ContinuousClock.now
+        let task = Task { await AudioUnitValidator.validateWithResults(component: component, force: true) }
+        task.cancel()
+
+        let result = await task.value
+        #expect(result.result == .unknown)
+        #expect(ContinuousClock.now - start < .seconds(5))
+    }
+
     @Test func validationResultInit() {
         let result = AudioUnitValidator.ValidationResult(result: .passed)
         #expect(result.result == .passed)

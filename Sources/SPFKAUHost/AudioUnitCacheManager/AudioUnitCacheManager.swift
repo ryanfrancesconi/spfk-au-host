@@ -104,6 +104,9 @@ public actor AudioUnitCacheManager {
 
     var isScanning: Bool { scanTask != nil }
 
+    /// Set when a registration change arrives mid-scan, which then runs `updateCache()` once it ends.
+    var registrationChangedDuringScan = false
+
     /// Cached result of the compatible components query. Invalidated on componentRegistrationsChanged.
     private var _cachedCompatibleComponents: [AVAudioUnitComponent]?
 
@@ -231,7 +234,8 @@ public actor AudioUnitCacheManager {
         invalidateCachedComponents()
 
         guard !isScanning else {
-            Log.debug("*AU component change detected but scan already in progress, skipping")
+            Log.debug("*AU component change detected during a scan, deferring until it ends")
+            registrationChangedDuringScan = true
             return
         }
 

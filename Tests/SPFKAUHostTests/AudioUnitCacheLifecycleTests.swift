@@ -72,6 +72,50 @@ final class AudioUnitCacheLifecycleTests: BinTestCase, @unchecked Sendable {
         #expect(recorder.validatingCount == before)
     }
 
+    @Test func cancelledScanKeepsPreviousCache() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        try await manager.createCache()
+        let url = try #require(await manager.cacheURL)
+        #expect(url.exists)
+
+        let manager = manager
+        recorder.onEvent = { event in
+            if case .validating(_, completed: 1, _) = event {
+                await manager.cancelScan()
+            }
+        }
+
+        await #expect(throws: CancellationError.self) {
+            try await manager.createCache()
+        }
+
+        #expect(url.exists)
+    }
+
+    @Test func componentRegisteredMidScanIsValidated() async throws {
+        try await setUp()
+        defer { await tearDown() }
+
+        let extra = components[Self.initialCount]
+        let uid = extra.audioComponentDescription.uid
+        let registry = registry
+        let registered = Locked(false)
+        let manager = manager
+
+        recorder.onEvent = { event in
+            guard case .validating = event, !registered.value else { return }
+            registered.mutate { $0 = true }
+            registry.mutate { $0.append(extra) }
+            await manager.handleComponentRegistrationsChanged()
+        }
+
+        try await manager.createCache()
+
+        #expect(validated.value.contains(uid))
+        #expect(await manager.componentCollection?.validationResults.contains { $0.audioComponentDescription.uid == uid } == true)
+    }
 }
 
 // MARK: - Helpers

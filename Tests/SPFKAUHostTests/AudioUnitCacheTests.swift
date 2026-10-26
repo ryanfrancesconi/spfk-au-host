@@ -210,7 +210,7 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
         let collection = ComponentCollection(results: [result])
         await manager.update(componentCollection: collection)
 
-        try await manager.writeCache()
+        try await manager.writeCache(componentUIDs: [desc.uid])
 
         // Read back
         let response = try await manager.loadCache()
@@ -255,7 +255,7 @@ final class AudioUnitCacheTests: BinTestCase, @unchecked Sendable {
 
         await manager.update(componentCollection: ComponentCollection(results: [result]))
 
-        try await manager.writeCache()
+        try await manager.writeCache(componentUIDs: [desc.uid])
 
         let cacheURL = await manager.cacheURL
         let url = try #require(cacheURL)

@@ -139,20 +139,19 @@ extension AudioUnitCacheManager {
 
         let previousCollection = componentCollection
 
-        removeCache()
-
         let components = cachedCompatibleComponents()
+        let componentUIDs = Set(components.map(\.audioComponentDescription.uid))
         let results = try await validate(components: components)
 
         update(componentCollection: ComponentCollection(results: results))
-        cachedComponentUIDs = Set(components.map(\.audioComponentDescription.uid))
+        cachedComponentUIDs = componentUIDs
 
         // reapply isEnabled or if missing true
         if let value = previousCollection {
             updateEnabled(from: value)
         }
 
-        try await writeCache()
+        try await writeCache(componentUIDs: componentUIDs)
 
         await send(event: .cacheUpdated)
 
@@ -160,12 +159,15 @@ extension AudioUnitCacheManager {
         if !failed.isEmpty {
             await send(event: .validationComplete(failed: failed))
         }
+
+        try await updateCacheIfRegistrationChanged()
     }
 
     // MARK: - Writing
 
-    /// Write current component collection to disk as JSON.
-    public func writeCache() async throws {
+    /// Write current component collection to disk as JSON, recording `componentUIDs` as the
+    /// components it was validated against. Replaces any previous file only once written.
+    public func writeCache(componentUIDs: Set<String>) async throws {
         guard let cacheURL else {
             throw NSError(description: "*AU cacheURL is nil")
         }
@@ -173,10 +175,6 @@ extension AudioUnitCacheManager {
         guard let effects: [ComponentValidationResult] = componentCollection?.validationResults else {
             throw NSError(description: "*AU componentCollection is nil")
         }
-
-        removeCache()
-
-        let componentUIDs = cachedCompatibleComponents().map(\.audioComponentDescription.uid).sorted()
 
         let audioUnits = effects.map { au -> CachedAudioUnit in
             let acd = au.audioComponentDescription
@@ -196,7 +194,7 @@ extension AudioUnitCacheManager {
         }
 
         let collection = CachedAudioUnitCollection(
-            cachedComponentUIDs: componentUIDs,
+            cachedComponentUIDs: componentUIDs.sorted(),
             audioUnits: audioUnits
         )
 
@@ -204,7 +202,7 @@ extension AudioUnitCacheManager {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(collection)
 
-        try data.write(to: cacheURL)
+        try data.write(to: cacheURL, options: .atomic)
 
         Log.debug("*AU Wrote cache to", cacheURL)
     }
@@ -262,13 +260,22 @@ extension AudioUnitCacheManager {
         update(componentCollection: updated)
         cachedComponentUIDs = systemUIDs
 
-        try await writeCache()
+        try await writeCache(componentUIDs: systemUIDs)
         await send(event: .cacheUpdated)
 
         let failed = componentCollection?.failedEffects ?? []
         if !failed.isEmpty {
             await send(event: .validationComplete(failed: failed))
         }
+
+        try await updateCacheIfRegistrationChanged()
+    }
+
+    /// Catches up with a registration change that arrived while a scan was running.
+    private func updateCacheIfRegistrationChanged() async throws {
+        guard registrationChangedDuringScan else { return }
+        registrationChangedDuringScan = false
+        try await updateCache()
     }
 
     func removeCache() {

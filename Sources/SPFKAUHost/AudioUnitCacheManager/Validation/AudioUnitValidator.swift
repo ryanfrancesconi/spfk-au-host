@@ -105,10 +105,16 @@ public class AudioUnitValidator {
             return nil
         }
 
-        /// Wraps ProcessHandler.run() off the cooperative thread pool
-        /// using a GCD dispatch to avoid blocking Swift Concurrency threads.
-        static func validateExternal(component: AVAudioUnitComponent) async -> ValidationResult {
-            guard let cmd = auval else {
+        /// How long `auval -v` may run before it is ended and reported as `.timedOut`.
+        static let externalTimeout: Duration = .seconds(15)
+
+        /// Runs `auval -v` on the component. `executable` and `timeout` exist for tests.
+        static func validateExternal(
+            component: AVAudioUnitComponent,
+            executable: URL? = auval,
+            timeout: Duration = externalTimeout
+        ) async -> ValidationResult {
+            guard let cmd = executable else {
                 return ValidationResult(result: .unknown)
             }
 
@@ -121,36 +127,26 @@ public class AudioUnitValidator {
                 desc.componentManufacturer.fourCC,
             ].compactMap(\.self)
 
-            let name = component.name
-
-            return await withCheckedContinuation { continuation in
-                DispatchQueue.global(qos: .userInitiated).async {
-                    let process = ProcessHandler(url: cmd, args: args, qos: .default)
-
-                    do {
-                        let out = try process.run()
-
-                        let result = parse(result: out)
-
-                        if result != .passed {
-                            Log.error("*AU validateExternal", name, "result:", result.description)
-                        } else {
-                            Log.default("*AU validateExternal", name, "result:", result.description)
-                        }
-
-                        continuation.resume(returning: ValidationResult(
-                            result: result,
-                            output: out,
-                        ))
-
-                    } catch {
-                        continuation.resume(returning: ValidationResult(result: .failed, output: error.localizedDescription))
-                    }
-                }
+            let output: ProcessOutput
+            do {
+                output = try await ProcessRunner.run(cmd, arguments: args, timeout: timeout)
+            } catch {
+                return ValidationResult(result: .failed, output: error.localizedDescription)
             }
+
+            let text = output.stdout + output.stderr
+            let result = output.timedOut ? .timedOut : parse(result: text)
+
+            if result != .passed {
+                Log.error("*AU validateExternal", component.name, "result:", result.description)
+            } else {
+                Log.default("*AU validateExternal", component.name, "result:", result.description)
+            }
+
+            return ValidationResult(result: result, output: text)
         }
 
-        private static func parse(result: String) -> AudioComponentValidationResult {
+        static func parse(result: String) -> AudioComponentValidationResult {
             if result.contains("AU VALIDATION SUCCEEDED") {
                 .passed
 

@@ -223,6 +223,55 @@ struct AudioUnitValidatorTests {
     #endif
 }
 
+#if os(macOS)
+    // MARK: - validateExternal
+
+    struct AudioUnitValidatorExternalTests {
+        private func auDelay() throws -> AVAudioUnitComponent {
+            try #require(AVAudioUnitComponentManager.shared().components(matching: AudioUnitValidatorTests.auDelayDesc).first)
+        }
+
+        /// A stand-in for `auval` that ignores its arguments and runs `body`.
+        private func fakeAuval(_ body: String) throws -> URL {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("fake-auval-\(UUID().uuidString)")
+            try "#!/bin/sh\n\(body)\n".write(to: url, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+            return url
+        }
+
+        @Test func parseReadsEachVerdict() {
+            #expect(AudioUnitValidator.parse(result: "...\nAU VALIDATION SUCCEEDED.\n") == .passed)
+            #expect(AudioUnitValidator.parse(result: "FATAL ERROR: OpenAComponent: result: -1") == .unauthorizedError_Open)
+            #expect(AudioUnitValidator.parse(result: "FATAL ERROR: Initialize: result: -1") == .unauthorizedError_Init)
+            #expect(AudioUnitValidator.parse(result: "ERROR: Cannot get Component's Name strings") == .failed)
+        }
+
+        @Test func verdictOnStderrIsRead() async throws {
+            let fake = try fakeAuval("echo 'AU VALIDATION SUCCEEDED.' >&2")
+            defer { try? FileManager.default.removeItem(at: fake) }
+
+            let result = await AudioUnitValidator.validateExternal(component: try auDelay(), executable: fake)
+            #expect(result.result == .passed)
+        }
+
+        @Test func hungValidatorTimesOut() async throws {
+            let fake = try fakeAuval("sleep 20")
+            defer { try? FileManager.default.removeItem(at: fake) }
+
+            let start = ContinuousClock.now
+            let result = await AudioUnitValidator.validateExternal(component: try auDelay(), executable: fake, timeout: .milliseconds(300))
+            #expect(result.result == .timedOut)
+            #expect(ContinuousClock.now - start < .seconds(10))
+        }
+
+        /// Needs the component registry, which a sandboxed run cannot see.
+        @Test(.tags(.audioUnit)) func realAuvalPassesAppleComponent() async throws {
+            let result = await AudioUnitValidator.validateExternal(component: try auDelay())
+            #expect(result.result == .passed, "\(result.output ?? "")")
+        }
+    }
+#endif
+
 // MARK: - AudioUnitCacheObservation
 
 struct AudioUnitCacheObservationTests {

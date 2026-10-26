@@ -137,12 +137,6 @@ public class AudioUnitValidator {
             let text = output.stdout + output.stderr
             let result = output.timedOut ? .timedOut : parse(result: text)
 
-            if result != .passed {
-                Log.error("*AU validateExternal", component.name, "result:", result.description)
-            } else {
-                Log.default("*AU validateExternal", component.name, "result:", result.description)
-            }
-
             return ValidationResult(result: result, output: text)
         }
 

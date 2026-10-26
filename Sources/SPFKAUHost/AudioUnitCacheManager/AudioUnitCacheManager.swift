@@ -104,17 +104,6 @@ public actor AudioUnitCacheManager {
 
     var isScanning: Bool { scanTask != nil }
 
-    // HACK: some special cases to allow through the filter
-    var allowedComponentDescriptions = [
-        AudioComponentDescription(
-            componentType: kAudioUnitType_FormatConverter,
-            componentSubType: kAudioUnitSubType_Varispeed,
-            componentManufacturer: kAudioUnitManufacturer_Apple,
-            componentFlags: 0,
-            componentFlagsMask: 0
-        ),
-    ]
-
     /// Cached result of the compatible components query. Invalidated on componentRegistrationsChanged.
     private var _cachedCompatibleComponents: [AVAudioUnitComponent]?
 

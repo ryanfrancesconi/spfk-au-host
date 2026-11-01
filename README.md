@@ -3,64 +3,72 @@
 [![Version](https://img.shields.io/github/v/tag/ryanfrancesconi/spfk-au-host)](https://github.com/ryanfrancesconi/spfk-au-host/tags)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fryanfrancesconi%2Fspfk-au-host%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/ryanfrancesconi/spfk-au-host) [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fryanfrancesconi%2Fspfk-au-host%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/ryanfrancesconi/spfk-au-host)
 
-Audio Unit (v3) hosting, validation, caching, and effects chain management for macOS and iOS.
+Audio Unit hosting for an `AVAudioEngine` app: finding the units installed on the system, deciding
+which of them are safe to load, and running a chain of them as inserts in a signal path.
 
-## Features
+A host that offers plugins to its users has three problems AVFoundation leaves to it. Scanning and
+validating every installed unit is slow, so the result has to be cached and kept current as plugins
+are installed, updated and removed. Some plugins fail validation, so the host needs a verdict before
+it loads one. And an effects chain is more than a list of `AVAudioUnit`s: slots are filled,
+bypassed, reordered and emptied while audio runs, and a saved document has to reopen with the same
+units in the same state.
 
-- **Effects Chain** — Actor-based `AudioUnitChain` for loading, connecting, bypassing, reordering, and removing Audio Units in a serial chain between input and output nodes
-- **Component Caching** — JSON cache system (`AudioUnitCacheManager`) for persisting validated Audio Unit component state across sessions
-- **Component Validation** — Multi-strategy validation pipeline using `AudioComponentValidateWithResults` (macOS 13+/iOS 16+), and external `auval`/`auvaltool` fallback (macOS only)
-- **Preset Management** — Factory preset loading via AudioToolbox APIs and user preset discovery from the `~/Library/Audio/Presets` hierarchy (macOS only)
-- **Full State Persistence** — Plist-based serialization and restoration of Audio Unit full state dictionaries for project save/load
-- **Host Musical Context** — Tempo, time signature, beat position, and transport state blocks for AUs that need host timing information
-- **Manufacturer Grouping** — `AudioUnitManufacturerCollection` for organizing available components into manufacturer-grouped hierarchies for menu display
-- **Sendable Component Wrapper** — `S_AVAudioUnitComponent` copies all relevant properties from `AVAudioUnitComponent` into a `Sendable` struct for safe cross-isolation use
-- **Engine Abstraction** — `AudioEngineConnection` protocol decouples chain connection logic from `AVAudioEngine`, allowing the host to provide its own node attachment strategy
-- **Component Observation** — Real-time notifications for Audio Unit registration changes and component invalidation (plugin crash detection)
+ShadowTag hosts its effects inserts with this package, through spfk-audio-workspace. It depends on
+neither product and can be adopted on its own.
 
-## Key types
+## What it does
 
-| Type | Description |
-|------|-------------|
-| **`AudioUnitChain`** | The host: loads, connects, bypasses, reorders and removes Audio Units in a serial chain between an input and an output node |
-| **`AudioUnitChainData`** | The fixed-size slot array behind it. Each slot is empty or holds one `AudioUnitDescription` |
-| **`AudioUnitDescription`** | One loaded unit and what is known about it |
-| **`AudioUnitChainSnapshot`** / **`AudioUnitInsertSnapshot`** | `Sendable` snapshots of the chain and of one slot, safe to pass across isolation |
-| **`AudioUnitChainEvent`** / **`AudioUnitChainDelegate`** | What the chain reports back |
-| **`AudioUnitCacheManager`** | Component discovery, validation, and the cache that persists it across sessions |
-| **`AudioUnitCacheEvent`** / **`AudioUnitCacheObservation`** | Cache progress, and live notification of registration changes and plugin crashes |
-| **`AudioUnitValidator`** / **`ComponentValidationResult`** | The validation pipeline and what it concluded |
-| **`ComponentCollection`** / **`SystemComponentsResponse`** | The set of components on the system |
-| **`AudioUnitManufacturerCollection`** | Those components grouped by manufacturer, for menu display |
-| **`AudioUnitAvailability`** | The surface a host implements to supply that list |
-| **`S_AVAudioUnitComponent`** | A `Sendable` copy of `AVAudioUnitComponent`'s properties |
-| **`AudioUnitPresets`** | Factory preset loading, and user preset discovery under `~/Library/Audio/Presets` |
-| **`AudioUnitPresetStorage`** | File-based preset storage for a sandboxed app, in the same folder shape, so `.aupreset` files can be copied in by hand |
-| **`AudioUnitStateNotifier`** | Tells parameter listeners the state changed — what makes an open plugin UI follow a preset load |
-| **`HostAUState`** / **`HostMusicalContext`** / **`HostTransportState`** | Tempo, time signature, beat position and transport state for units that need host timing. Mutations are reflected live, so nothing has to reassign the blocks |
-| **`AudioEngineConnection`** | Decouples chain connection from `AVAudioEngine`, so the host supplies its own attachment strategy |
-| **`AudioEngineNode`** / **`NodeInputAccess`** / **`NodeOutputAccess`** | What the chain needs of the nodes at either end |
-| **`AudioUnitTestContent`** | Known-good components for tests to load against |
+**Discovery and validation.** `AudioUnitCacheManager` scans the system's components, validates them,
+and writes the verdicts to a JSON cache. Later launches read the cache and validate only what was
+added or updated since it was written. While loaded it observes component registration, so a plugin
+installed or removed while the app runs is picked up. On macOS, a unit the system does not pass is
+decided by `auval`, which can also be asked to decide every unit.
 
-## Dependencies
+**The chain.** `AudioUnitChain` is an actor holding a fixed number of insert slots between an input
+node and an output node. Units are inserted, bypassed, swapped and removed by slot index, and the
+chain reconnects itself after each change. A bypassed slot is taken out of the signal path rather
+than left connected. The chain never touches an engine directly: its delegate does every attach and
+connect, so it fits whatever engine ownership the app already has.
 
-| Package | Description |
-|---|---|
-| [SPFKAudioBase](https://github.com/ryanfrancesconi/spfk-audio-base) | Shared audio type definitions |
-| [SPFKUtils](https://github.com/ryanfrancesconi/spfk-utils) | Plist utilities, process handling, and audio extensions |
-| [SPFKTesting](https://github.com/ryanfrancesconi/spfk-testing) | Test case base classes (test target only) |
+**State.** A chain can be snapshotted and restored with each unit's full state, so a document can
+persist its effects. Factory presets load through AudioToolbox, user presets are found in the
+standard `~/Library/Audio/Presets` folders on macOS, and `AudioUnitPresetStorage` keeps presets in
+that same folder shape for an app that manages its own.
 
-## Platform Notes
+**Host context.** `HostAUState` supplies tempo, time signature, beat position and transport state to
+units that ask their host for them, such as tempo-synced delays.
 
-Most functionality is cross-platform. The following features are macOS-only:
+**Menus.** The available components can be grouped by manufacturer for building a plugin menu.
 
-- **External `auval` validation** — Falls back to `AudioComponentValidateWithResults` API results on iOS
-- **User preset discovery** — `AudioUnitPresets.Locations` and `~/Library/Audio/Presets` browsing are unavailable on iOS; factory preset loading and full state persistence work on both platforms
+## Usage
 
-## Requirements
+Load the component cache, then bring it up to date with the system:
 
-- **Platforms:** macOS 13+, iOS 16+
-- **Swift:** 6.2+
+```swift
+let cache = AudioUnitCacheManager(delegate: self)
+await cache.update(cachesDirectory: cachesURL)
+do { try await cache.load() } catch { /* no cache yet */ }
+try await cache.refreshCache()
+```
+
+Run a chain between two nodes. The delegate is an `AudioUnitChainDelegate`, which attaches and
+connects nodes in your engine:
+
+```swift
+let chain = AudioUnitChain(delegate: host)
+try await chain.updateIO(input: player, output: mixer)
+try await chain.insertAudioUnit(componentDescription: delay, at: 0)
+try await chain.bypassEffect(at: 0, isBypassed: true)
+```
+
+## Things to know
+
+- Both the cache manager and the chain hold their delegate weakly, and report everything through it.
+  Keep the delegate alive for as long as either is in use.
+- Set the cache location with `update(cachesDirectory:)`. Until one is set there is nowhere to write
+  the cache, and building it throws.
+- Inserts are stereo. A unit with a mono input is refused.
+- `auval` validation and the user preset folders are macOS only.
 
 ## About
 

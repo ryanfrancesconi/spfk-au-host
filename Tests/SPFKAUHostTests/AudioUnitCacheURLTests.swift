@@ -15,6 +15,14 @@ final class AudioUnitCacheURLTests: BinTestCase, @unchecked Sendable {
         await super.init()
     }
 
+    @Test func directoryPassedToInitResolves() async throws {
+        let manager = AudioUnitCacheManager(cachesDirectory: bin)
+        defer { await manager.dispose() }
+
+        let cacheURL = try #require(await manager.cacheURL)
+        #expect(cacheURL.deletingLastPathComponent() == bin.resolvingSymlinksInPath())
+    }
+
     @Test func directorySetAfterCacheURLStillResolves() async throws {
         let manager = AudioUnitCacheManager()
         defer { await manager.dispose() }

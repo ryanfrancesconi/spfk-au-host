@@ -33,7 +33,7 @@ public actor AudioUnitCacheManager {
         // Otherwise the two updates are order-dependent, and setting the directory after
         // update(cacheURL:) leaves cacheURL nil for good.
         if !hasExplicitCacheURL {
-            cacheURL = defaultCacheURL()
+            cacheURL = Self.defaultCacheURL(in: cachesDirectory)
         }
     }
 
@@ -45,10 +45,10 @@ public actor AudioUnitCacheManager {
     /// Updates the URL used for the cache file, falling back to the default location if nil.
     public func update(cacheURL: URL?) {
         hasExplicitCacheURL = cacheURL != nil
-        self.cacheURL = cacheURL ?? defaultCacheURL()
+        self.cacheURL = cacheURL ?? Self.defaultCacheURL(in: cachesDirectory)
     }
 
-    private func defaultCacheURL() -> URL? {
+    private static func defaultCacheURL(in cachesDirectory: URL?) -> URL? {
         guard let folder = cachesDirectory else {
             // No cache location means caching is disabled, which is a supported setup — the
             // tests run this way. createCache() reports it where it actually matters.
@@ -169,6 +169,7 @@ public actor AudioUnitCacheManager {
     /// Creates a new cache manager with an optional caches directory and delegate.
     public init(cachesDirectory: URL? = nil, delegate: AudioUnitCacheManagerDelegate? = nil) {
         self.cachesDirectory = cachesDirectory
+        self.cacheURL = Self.defaultCacheURL(in: cachesDirectory)
         self.delegate = delegate
     }
 

@@ -45,8 +45,7 @@ units that ask their host for them, such as tempo-synced delays.
 Load the component cache, then bring it up to date with the system:
 
 ```swift
-let cache = AudioUnitCacheManager(delegate: self)
-await cache.update(cachesDirectory: cachesURL)
+let cache = AudioUnitCacheManager(cachesDirectory: cachesURL, delegate: self)
 do { try await cache.load() } catch { /* no cache yet */ }
 try await cache.refreshCache()
 ```
@@ -65,8 +64,6 @@ try await chain.bypassEffect(at: 0, isBypassed: true)
 
 - Both the cache manager and the chain hold their delegate weakly, and report everything through it.
   Keep the delegate alive for as long as either is in use.
-- Set the cache location with `update(cachesDirectory:)`. Until one is set there is nowhere to write
-  the cache, and building it throws.
 - Inserts are stereo. A unit with a mono input is refused.
 - `auval` validation and the user preset folders are macOS only.
 

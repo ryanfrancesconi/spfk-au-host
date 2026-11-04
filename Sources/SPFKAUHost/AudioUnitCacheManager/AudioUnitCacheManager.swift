@@ -23,7 +23,7 @@ public actor AudioUnitCacheManager {
                 try cachesDirectory.createDirectory()
             } catch {
                 Log.fault(error)
-                Task { await send(event: .error(error.localizedDescription)) }
+                Task { await send(event: .error(error)) }
             }
         }
 
@@ -268,7 +268,7 @@ public actor AudioUnitCacheManager {
             Log.debug("*AU scan cancelled")
         } catch {
             Log.error(error)
-            await send(event: .error(error.localizedDescription))
+            await send(event: .error(error))
         }
     }
 

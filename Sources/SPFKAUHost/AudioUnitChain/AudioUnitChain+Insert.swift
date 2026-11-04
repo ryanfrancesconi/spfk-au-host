@@ -36,7 +36,7 @@ extension AudioUnitChain {
             } catch {
                 Log.error("Failed to load \(insert.name ?? insert.uid) at index \(index):", error)
                 errors[index] = error
-                await delegate?.audioUnitChain(self, event: .restoreFailed(index: index, error: error))
+                await delegate?.audioUnitChain(self, event: .restoreFailed(index: index, name: insert.name, error: error))
             }
         }
 

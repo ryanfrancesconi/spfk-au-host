@@ -380,6 +380,6 @@ final class EventRecorder: AudioUnitCacheManagerDelegate, @unchecked Sendable {
     }
 
     var errors: [String] {
-        events.value.compactMap { if case let .error(message) = $0 { message } else { nil } }
+        events.value.compactMap { if case let .error(error) = $0 { error.localizedDescription } else { nil } }
     }
 }

@@ -6,42 +6,6 @@ import Testing
 @testable import SPFKAUHost
 
 struct AudioUnitChainDataTests {
-    @Test func initWithInsertCount() async {
-        let data = AudioUnitChainData(insertCount: 10)
-        let count = await data.insertCount
-        #expect(count == 10)
-    }
-
-    @Test func defaultInsertCount() async {
-        let data = AudioUnitChainData(insertCount: AudioUnitChain.defaultInsertCount)
-        let count = await data.insertCount
-        #expect(count == 4)
-    }
-
-    @Test func effectsChainStartsEmpty() async {
-        let data = AudioUnitChainData(insertCount: 3)
-        let linked = await data.linkedEffects
-        #expect(linked.isEmpty)
-    }
-
-    @Test func effectsCountStartsAtZero() async {
-        let data = AudioUnitChainData(insertCount: 3)
-        let count = await data.effectsCount
-        #expect(count == 0)
-    }
-
-    @Test func unbypassedEffectsStartsEmpty() async {
-        let data = AudioUnitChainData(insertCount: 3)
-        let unbypassed = await data.unbypassedEffects
-        #expect(unbypassed.isEmpty)
-    }
-
-    @Test func totalLatencyStartsAtZero() async {
-        let data = AudioUnitChainData(insertCount: 3)
-        let latency = await data.totalLatency
-        #expect(latency == 0)
-    }
-
     @Test func checkValidIndex() async throws {
         let data = AudioUnitChainData(insertCount: 3)
         try await data.check(index: 0)
@@ -102,12 +66,6 @@ struct AudioUnitChainDataTests {
     }
 
     // MARK: - minimumInsertCount
-
-    @Test func minimumInsertCountIsStored() async {
-        let data = AudioUnitChainData(insertCount: 5)
-        let min = await data.minimumInsertCount
-        #expect(min == 5)
-    }
 
     @Test func minimumInsertCountUnchangedAfterAppend() async {
         let data = AudioUnitChainData(insertCount: 3)

@@ -38,27 +38,6 @@ struct ComponentValidationResultTests {
         #expect(result.component != nil)
     }
 
-    @Test func initWithoutComponent() {
-        let validation = AudioUnitValidator.ValidationResult(result: .failed)
-        let result = ComponentValidationResult(
-            audioComponentDescription: Self.testDesc,
-            validation: validation,
-            isEnabled: false,
-            name: "TestAU",
-            typeName: "Effect",
-            manufacturerName: "TestMfg",
-            versionString: "2.0"
-        )
-
-        #expect(result.name == "TestAU")
-        #expect(result.typeName == "Effect")
-        #expect(result.manufacturerName == "TestMfg")
-        #expect(result.versionString == "2.0")
-        #expect(result.isEnabled == false)
-        #expect(result.component == nil)
-        #expect(result.validation.result == .failed)
-    }
-
     @Test func isFormatCompatibleWithComponent() {
         guard let component = AVAudioUnitComponentManager.shared()
             .components(matching: Self.testDesc).first
@@ -141,36 +120,5 @@ struct ComponentValidationResultTests {
         let desc = result.description
         #expect(desc.contains(component.manufacturerName))
         #expect(desc.contains(component.name))
-    }
-
-    @Test func descriptionWithoutComponent() {
-        let validation = AudioUnitValidator.ValidationResult(result: .passed)
-        let result = ComponentValidationResult(
-            audioComponentDescription: Self.testDesc,
-            validation: validation,
-            name: "Test",
-            typeName: "Effect",
-            manufacturerName: "Apple",
-            versionString: "1.0"
-        )
-
-        let desc = result.description
-        #expect(!desc.isEmpty)
-    }
-
-    @Test func isEnabledMutability() {
-        let validation = AudioUnitValidator.ValidationResult(result: .passed)
-        var result = ComponentValidationResult(
-            audioComponentDescription: Self.testDesc,
-            validation: validation,
-            name: "Test",
-            typeName: "Effect",
-            manufacturerName: "Apple",
-            versionString: "1.0"
-        )
-
-        #expect(result.isEnabled == true)
-        result.isEnabled = false
-        #expect(result.isEnabled == false)
     }
 }

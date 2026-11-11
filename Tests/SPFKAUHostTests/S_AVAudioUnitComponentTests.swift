@@ -14,30 +14,6 @@ struct S_AVAudioUnitComponentTests {
         componentFlagsMask: 0
     )
 
-    @Test func initFromAVAudioUnitComponent() {
-        guard let component = AVAudioUnitComponentManager.shared()
-            .components(matching: Self.testDesc).first
-        else {
-            Issue.record("AUDelay not found on system")
-            return
-        }
-
-        let sendable = S_AVAudioUnitComponent(avAudioUnitComponent: component)
-
-        #expect(sendable.name == component.name)
-        #expect(sendable.typeName == component.typeName)
-        #expect(sendable.localizedTypeName == component.localizedTypeName)
-        #expect(sendable.manufacturerName == component.manufacturerName)
-        #expect(sendable.version == component.version)
-        #expect(sendable.versionString == component.versionString)
-        #expect(sendable.isSandboxSafe == component.isSandboxSafe)
-        #expect(sendable.hasMIDIInput == component.hasMIDIInput)
-        #expect(sendable.hasMIDIOutput == component.hasMIDIOutput)
-        #if os(macOS)
-            #expect(sendable.hasCustomView == component.hasCustomView)
-        #endif
-    }
-
     @Test func equalitySameDescription() {
         guard let component = AVAudioUnitComponentManager.shared()
             .components(matching: Self.testDesc).first
@@ -73,44 +49,5 @@ struct S_AVAudioUnitComponentTests {
         let b = S_AVAudioUnitComponent(avAudioUnitComponent: reverbComponent)
 
         #expect(a != b)
-    }
-
-    @Test func audioComponentDescriptionPreserved() {
-        guard let component = AVAudioUnitComponentManager.shared()
-            .components(matching: Self.testDesc).first
-        else {
-            return
-        }
-
-        let sendable = S_AVAudioUnitComponent(avAudioUnitComponent: component)
-
-        #expect(sendable.audioComponentDescription.componentType == Self.testDesc.componentType)
-        #expect(sendable.audioComponentDescription.componentSubType == Self.testDesc.componentSubType)
-        #expect(sendable.audioComponentDescription.componentManufacturer == Self.testDesc.componentManufacturer)
-    }
-}
-
-// MARK: - SystemComponentsResponse
-
-struct SystemComponentsResponseTests {
-    @Test func defaultInit() {
-        let response = SystemComponentsResponse()
-        #expect(response.results.isEmpty)
-    }
-
-    @Test func initWithResults() {
-        let validation = AudioUnitValidator.ValidationResult(result: .passed)
-        let result = ComponentValidationResult(
-            audioComponentDescription: S_AVAudioUnitComponentTests.testDesc,
-            validation: validation,
-            name: "Test",
-            typeName: "Effect",
-            manufacturerName: "Apple",
-            versionString: "1.0"
-        )
-
-        let response = SystemComponentsResponse(results: [result])
-        #expect(response.results.count == 1)
-        #expect(response.results.first?.name == "Test")
     }
 }

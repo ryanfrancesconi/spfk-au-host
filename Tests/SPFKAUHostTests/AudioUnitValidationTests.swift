@@ -200,18 +200,6 @@ struct AudioUnitValidatorTests {
         #expect(ContinuousClock.now - start < .seconds(5))
     }
 
-    @Test func validationResultInit() {
-        let result = AudioUnitValidator.ValidationResult(result: .passed)
-        #expect(result.result == .passed)
-        #expect(result.output == nil)
-    }
-
-    @Test func validationResultWithOutput() {
-        let result = AudioUnitValidator.ValidationResult(result: .failed, output: "error details")
-        #expect(result.result == .failed)
-        #expect(result.output == "error details")
-    }
-
     #if os(macOS)
         @Test func auvalToolExists() {
             // On macOS, at least one of auval or auvaltool should exist

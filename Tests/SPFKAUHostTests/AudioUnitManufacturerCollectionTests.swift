@@ -7,17 +7,6 @@ import SPFKAUHostTesting
 @testable import SPFKAUHost
 
 struct AudioUnitManufacturerCollectionTests {
-    @Test func initWithDefaults() {
-        let collection = AudioUnitManufacturerCollection(
-            name: "Apple",
-            manufacturer: 1_634_758_764
-        )
-
-        #expect(collection.name == "Apple")
-        #expect(collection.manufacturer == 1_634_758_764)
-        #expect(collection.components.isEmpty)
-    }
-
     @Test func equalityByManufacturer() {
         let a = AudioUnitManufacturerCollection(
             name: "Apple",

@@ -9,7 +9,7 @@ import SPFKTesting
 import Testing
 import SPFKAUHostTesting
 
-/// Records what was connected, and runs a hook inside the next connection — the suspension a
+/// Records what was connected, and runs a hook inside the next connection - the suspension a
 /// concurrent `updateIO`/`dispose` reenters the actor through.
 final class RecordingChainDelegate: AudioUnitChainDelegate, @unchecked Sendable {
     private let content = AudioUnitTestContent()
@@ -43,7 +43,7 @@ final class RecordingChainDelegate: AudioUnitChainDelegate, @unchecked Sendable 
 struct AudioUnitChainConnectRaceTests {
     /// `connect()` binds `input` and `output` once and then makes a chain of connections across
     /// suspensions. `AudioUnitChain` is an actor, so `dispose()` reenters it in that window and
-    /// releases both — and the connections that follow would wire the chain to nodes it no longer
+    /// releases both - and the connections that follow would wire the chain to nodes it no longer
     /// holds, reporting success.
     @Test func connectReportsWhenDisposeReleasesTheIOWhileItIsSuspended() async throws {
         let delegate = RecordingChainDelegate()

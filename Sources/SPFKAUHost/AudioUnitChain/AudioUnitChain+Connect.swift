@@ -152,7 +152,7 @@ extension AudioUnitChain {
     ///
     /// This is an actor, so `updateIO` and `dispose()` reenter it while a connection is suspended
     /// and replace both nodes. The remaining connections would otherwise wire the chain to nodes it
-    /// no longer holds — a graph reaching no output, which nothing downstream can tell from a
+    /// no longer holds - a graph reaching no output, which nothing downstream can tell from a
     /// working one. Reported rather than reconnected: the caller that replaced the IO is already
     /// connecting the chain on its own path.
     private func requireCurrentIO(input: AVAudioNode, output: AVAudioNode) throws {

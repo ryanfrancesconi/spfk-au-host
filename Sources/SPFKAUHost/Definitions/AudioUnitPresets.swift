@@ -11,7 +11,7 @@ public enum AudioUnitPresets {
     /// Applies the given full state dictionary to the audio unit and notifies listeners of the change.
     /// Runs the fullState assignment at default priority to avoid priority inversion with AUAudioUnit internals.
     public static func loadPreset(for avAudioUnit: AVAudioUnit, fullState: [String: Any]) async {
-        // Dispatch at default QoS to avoid priority inversion — AUAudioUnit.fullState
+        // Dispatch at default QoS to avoid priority inversion - AUAudioUnit.fullState
         // setter internally synchronises on a Default-QoS thread.
         nonisolated(unsafe) let state = fullState
         await withCheckedContinuation { continuation in

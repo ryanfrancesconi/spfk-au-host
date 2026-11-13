@@ -21,7 +21,7 @@ public protocol AudioEngineNode: NodeInputAccess, NodeOutputAccess {
     ///
     /// **`async` for the conformers that own a background reader.** A node feeding itself from a
     /// decoder has a task that may be inside a blocking read, and cancellation is observed rather
-    /// than immediate — so tearing down without waiting leaves that task running against state this
+    /// than immediate - so tearing down without waiting leaves that task running against state this
     /// call is dismantling. A conformer with nothing in flight satisfies this with a synchronous
     /// body unchanged.
     ///
@@ -104,7 +104,7 @@ extension AudioEngineNode {
     /// Separate from ``detachNodes()`` so a `deinit`, which cannot await, still has the whole of the
     /// default teardown available to it.
     public func detachIONodes() throws {
-        // A node with no engine is already detached, which is this method's postcondition — so it
+        // A node with no engine is already detached, which is this method's postcondition - so it
         // is a success, not a failure. Throwing here made every teardown site swallow the result
         // with `try?`, and a genuine failure from the disconnects below went with it.
         guard let engine else { return }

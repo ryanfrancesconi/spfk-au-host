@@ -57,7 +57,7 @@ extension AudioUnitChain {
 
     /// Reinstates a saved chain: resizes the slot array to `insertCount`, then loads the inserts.
     ///
-    /// Returns each slot's failure at its own index — see `load(inserts:)`.
+    /// Returns each slot's failure at its own index - see `load(inserts:)`.
     @discardableResult
     public func restore(insertCount: Int, inserts: [AudioUnitInsert]) async throws -> [Error?] {
         let currentCount = await data.insertCount

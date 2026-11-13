@@ -72,7 +72,7 @@ final class AudioUnitChainTests: TestCaseModel {
     // MARK: - Restore
 
     /// A component that parses as a UID but resolves to no installed audio unit: `aufx/zzzz/appl`.
-    /// The subtype must not be zero — Core Audio reads that as a wildcard and matches the first
+    /// The subtype must not be zero - Core Audio reads that as a wildcard and matches the first
     /// effect the manufacturer ships.
     static let unknownUID = "617566787a7a7a7a6170706c"
 

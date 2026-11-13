@@ -50,7 +50,7 @@ public actor AudioUnitCacheManager {
 
     private static func defaultCacheURL(in cachesDirectory: URL?) -> URL? {
         guard let folder = cachesDirectory else {
-            // No cache location means caching is disabled, which is a supported setup — the
+            // No cache location means caching is disabled, which is a supported setup - the
             // tests run this way. createCache() reports it where it actually matters.
             Log.debug("cachesDirectory is nil")
             return nil
